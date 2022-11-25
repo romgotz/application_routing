@@ -2,7 +2,21 @@
 var GeoSearchControl = window.GeoSearch.GeoSearchControl;
 var OpenStreetMapProvider = window.GeoSearch.OpenStreetMapProvider;
 
-var map = L.map('map').setView([46.8, 8.15], 8);
+// Create icons for start/destination markers
+const icone_depart = L.icon({
+    iconUrl: 'static/img/marker_dep.svg',
+    iconSize: [35,95],
+    iconAnchor:   [22, 94], // point of the icon which will correspond to marker's location
+    popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
+});
+const icone_dest = L.icon({
+    iconUrl: 'static/img/marker_destination.svg', 
+    iconSize: [35,95],
+    iconAnchor:   [22, 94], // point of the icon which will correspond to marker's location
+    });
+
+// Initialize map and center view on Lausanne
+var map = L.map('map').setView([46.5, 6.6], 13);
 
 const provider = new OpenStreetMapProvider({
   params: {
@@ -24,7 +38,7 @@ map.setMinZoom(7)
 
 // OSM
 var OpenStreetMap_CH = L.tileLayer('https://tile.osm.ch/switzerland/{z}/{x}/{y}.png', {
-	maxZoom: 18,
+	maxZoom: 20,
 	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 	bounds: [[45, 5], [48, 11]]
 });
@@ -65,6 +79,34 @@ function onLocationFound(e) {
 
 // Add it to the map
 map.on('locationfound', onLocationFound);
+
+// 2nd possiblity : click on the map : it creates a marker
+//newMarkerGroup = new L.LayerGroup();
+//map.on('click', addMarker);
+
+var marker_depart = new L.marker([46.516662, 6.627789], {icon:icone_depart}).addTo(map);
+var marker_destination = new L.marker([47.5, 7.5], {icon:icone_dest}).addTo(map);
+
+function addMarker(e){
+// Add marker to map at click location; add popup window
+    newMarker
+        .setLatLng(e.latlng) 
+        .addTo(map);
+}
+
+var popup = L.popup()
+    .setLatLng([46.516662, 6.627789])
+    .setContent("I am a standalone popup.")
+    .openOn(map);
+
+function onMapClick(e) {
+    popup
+        .setLatLng(e.latlng)
+        .setContent("You clicked the map at " + e.latlng.toString())
+        .openOn(map);
+}
+
+map.on('click', onMapClick);
 
 // On ajoute la frontière de Lausanne sur le fond de carte
 
