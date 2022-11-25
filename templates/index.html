@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1> {% block title %} VéloRouter Lausanne : Proposition d'itinéraires les plus sûrs et confortables {%endblock%}</h1>
+<div class="main">
+    <div id="map"></div>
+
+    <div id="sidebar" class="sidebar">
+
+    <p id="explication"> Cette application permet de trouver un itinéraire à vélo le plus sûr et confortable possible. Définissez votre point de départ et destination, soit en cliquant sur la carte soit en cherchant l'adresse.</p>
+
+    <button type="button" class="btnGetLoc" id="btnGetLoc"></button>
+
+    </div>
+    
+</div>
+<!-- Link to js file -->
+<script src="{{ url_for('static', filename='index.js') }}"></script>
+{% endblock %}

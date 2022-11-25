@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Comments {% endblock %}</h1>
+    <div style="width: 50%; margin: auto">
+    {% for comment in comments %}
+        <div id="comment" style="background-color: {{ loop.cycle('#EEE', '#e6f9ff') }}">
+            <p>#{{ loop.index }}</p>
+            <p>{{ comment | upper }}</p>
+        </div>
+    {% endfor %}
+    <hr>
+    <div>
+        {{ "<h1>COMMENTS</h1>" | safe }}
+        <p>{{ comments | join(" <hr> ") | safe }}</p>
+    </div>
+    </div>
+{% endblock %}
