@@ -4,47 +4,45 @@
 
 <h1> {% block title %} VéloRouter Lausanne : Proposition d'itinéraires les plus sûrs et confortables {%endblock%}</h1>
 <div class="main">
+    <!-- Left part of the page is for the leaflet map -->
     <div id="map"></div>
 
+    <!-- Create div sidebar that will be on the right part with searching bar and explications --> 
     <div id="sidebar" class="sidebar">
 
-    <p id="explication"> Cette application permet de trouver un itinéraire à vélo le plus sûr et confortable possible. Définissez votre point de départ et destination, soit en cliquant sur la carte soit en cherchant l'adresse.</p>
+        <!-- Explication about the web app -->
+        <p id="explication"> Cette application permet de trouver un itinéraire à vélo le plus sûr et confortable possible. Définissez votre point de départ et destination, soit en cliquant sur la carte soit en cherchant l'adresse.</p>
 
-    <!-- Add fake buttons for start and destinations -->
-    <div class="input-group mb-3">
-    <div class="input-group-prepend">
-    <span class="input-group-text" id="basic-addon1">Dep</span>
-    </div>
-    <input type="text" class="form-control" placeholder="Départ (ou clique sur carte)" aria-label="Départ" aria-describedby="basic-addon1">
-    <hr>
-    <div class="input-group mb-3">
-    <div class="input-group-prepend">
-    <span class="input-group-text" id="basic-addon2">Dest</span>
-    </div>
-    <input type="text" class="form-control" placeholder="Destination (ou clique sur carte)" aria-label="Destination" aria-describedby="basic-addon2">
+        <!-- Dummy function to see interaction btw html and flask-->
+        <form action="" method="get">
+        Celsius temperature: <input type="text" name="celsius">
+        <input type="submit" value="Convert to fahrenheit">
+        </form>
+        <h3> The converted temperature is {{ fahrenheit }} </h3>
 
-  </a>
-</div>
-
-        <div class="row">
-        <div class="input-group col-md-4">
-            <input class="form-control py-2" type="search" value="search" id="example-search-input">
-            <span class="input-group-append">
-                <button class="btn btn-outline-secondary" type="button">
-                    <i class="fa fa-search"></i>
-                </button>
-            </span>
+        <!-- Add fake buttons for start and destinations -->
+        <div class="input-group mb-3">
+            <div class="input-group-prepend">
+            <span class="input-group-text" id="basic-addon1">Dep</span>
         </div>
-    </div>
+        <input type="text" class="form-control" placeholder="Départ (ou clique sur carte)" aria-label="Départ" aria-describedby="basic-addon1">
+        <br>
+        <br>
+        <div class="input-group mb-3">
+            <div class="input-group-prepend">
+            <span class="input-group-text" id="basic-addon2">Dest</span>
+        </div>
+        <input type="text" class="form-control" placeholder="Destination (ou clique sur carte)" aria-label="Destination" aria-describedby="basic-addon2">
 
-</div>
-</div>
+        <br>
+        <!-- Add a get location button -->
+        <button type="button" class="btnGetLoc" id="btnGetLoc"> Localisation </button>
 
-    <button type="button" class="btnGetLoc" id="btnGetLoc"></button>
 
-    </div>
-    
-</div>
+    </div> <!-- end of sidebar -->
+
+</div> <!-- End of main -->
+
 <!-- Link to js file -->
 <script src="{{ url_for('static', filename='index.js') }}"></script>
 {% endblock %}

@@ -47,3 +47,8 @@ width: 320px;
 background-color: #f0f0f0;
 border: 1px solid #666;
 }
+
+#btnGetLoc {
+background-color:#3630a3;
+color:white;
+}

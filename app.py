@@ -1,17 +1,59 @@
-from flask import Flask, render_template, url_for, abort
-from random import choice
+# Import necessary modules for flask 
+from flask import Flask, render_template, url_for, abort, request
 from markupsafe import escape
+# importe python modules specific for own code
 import datetime
 import math
+import time
+import pandas as pd
+import numpy as np
+import geopandas as gpd
+import osmnx as ox
+import networkx as nx
+import math
+import timeit
 
 app = Flask(__name__)
 app.debug = True
 
+# Python functions necessary for routing
+def construct_digraph(dir_edges_list, nodes_df):
+    """ Take a pandas edgelist and construct a directed graph using networkx
+    The pandas edgelist must have at least a source and target column : source is u and target is v, and at least one attribute to do the routing
+    The nodes should have a unique id, here it is osmid
+    """
+    G = nx.from_pandas_edgelist(dir_edges_list, source='u', target='v', edge_attr=True, create_using=nx.DiGraph(), edge_key='key')
+
+    # Add attributes for nodes
+    nodes_attr = nodes_df.set_index('osmid').to_dict(orient = 'index')
+    # then add nodes attributes in the Graph 
+    nx.set_node_attributes(G, nodes_attr)
+
+    # Specify a crs projection for osmnx
+    G = nx.DiGraph(G, crs='epsg:32632')
+
+    # Project the graph ?
+
+
+def fahrenheit_from(celsius):
+    """Convert Celsius to Fahrenheit degrees."""
+    try:
+        fahrenheit = float(celsius) * 9 / 5 + 32
+        fahrenheit = round(fahrenheit, 3)  # Round to three decimal places
+        return str(fahrenheit)
+    except ValueError:
+        return "invalid input"
+
+# Different app routes
 @app.route('/')
 def index():
+    celsius = request.args.get("celsius", "")
+    if celsius:
+        fahrenheit  = fahrenheit_from(celsius)
+    else: fahrenheit = ""
     return render_template(
         'index.html', 
-        random=choice(range(1,46)), 
+        fahrenheit=fahrenheit,
         utc_dt=datetime.datetime.utcnow()
     )
 
@@ -28,65 +70,6 @@ def comments():
                 ]
 
     return render_template('comments.html', comments=comments)
-
-graph = {
-    'a': {'b': 2, 'c': 6},
-    'b': {'a': 4, 'd': 5},
-    'c': {
-        'a': 8,
-        'd': 8,
-        },
-    'd': {
-        'c': 5,
-        'e': 15,
-        'f': 10,
-        },
-    'e': {'g': 2, 'd': 8, 'f': 4},
-    'f': {'e': 4, 'g': 2},
-    'g':{'f':1}
-    }
-
-source = 'g'
-destination = 'a'
-
-unvisited = graph
-shortest_distances = {}
-route = []
-path_nodes = {}
-
-# set distance at infinity for all, except source 
-for nodes in unvisited:
-    shortest_distances[nodes] = math.inf
-shortest_distances[source] = 0
-
-# run as long as univisted has nodes
-while unvisited:
-    min_node = None
-    for current_node in unvisited:
-        if min_node is None:
-            min_node = current_node
-        elif shortest_distances[min_node] > shortest_distances[current_node]:
-            min_node = current_node
-    for (node, value) in unvisited[min_node].items():
-        if value + shortest_distances[min_node] < shortest_distances[node]:
-            shortest_distances[node] = value + shortest_distances[min_node]
-            path_nodes[node] = min_node
-    unvisited.pop(min_node)
-node = destination
-
-while node != source:
-    try:
-        route.insert(0, node)
-        node = path_nodes[node]
-    except Exception:
-        print('Path not reachable')
-        break
-route.insert(0, source)
-
-if shortest_distances[destination] != math.inf:
-    print('Shortest distance is ' + str(shortest_distances[destination]))
-    print('And the path is ' + str(route))
-# The above function returns the HTML code to be displayed on the page
 
 if __name__ == '__main__':
     app.run()

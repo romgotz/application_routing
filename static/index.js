@@ -2,6 +2,14 @@
 var GeoSearchControl = window.GeoSearch.GeoSearchControl;
 var OpenStreetMapProvider = window.GeoSearch.OpenStreetMapProvider;
 
+
+const provider = new OpenStreetMapProvider({
+  params: {
+    'accept-language': 'fr', // render results in French
+    countrycodes: 'ch', // limit search results to the Switzerland
+  },
+});
+
 // Create icons for start/destination markers
 const icone_depart = L.icon({
     iconUrl: 'static/img/marker_dep.svg',
@@ -18,12 +26,6 @@ const icone_dest = L.icon({
 // Initialize map and center view on Lausanne
 var map = L.map('map').setView([46.5, 6.6], 13);
 
-const provider = new OpenStreetMapProvider({
-  params: {
-    'accept-language': 'fr', // render results in French
-    countrycodes: 'ch', // limit search results to the Switzerland
-  },
-});
 
 const searchControl = new GeoSearchControl({
   provider: provider,
@@ -69,6 +71,7 @@ L.control.layers(baseLayers).addTo(map)
 L.DomEvent.on(document.getElementById('btnGetLoc'), 'click', function(){
   map.locate({setView: true, maxZoom: 16});
 })
+
 // Display marker at localisation 
 function onLocationFound(e) {
   var radius = e.accuracy;
