@@ -20,6 +20,19 @@
         </form>
         <h3> The converted temperature is {{ fahrenheit }} </h3>
 
+        <!-- Two buttons for dest and dep-->
+        <!-- Depart --> 
+        <form action="" method="get">
+        Depart osmid: <input type="text" name="start">
+        Arrive osmid: <input type="text" name="target">
+        <input type="submit" value="Calculer itinéraire">
+        </form>
+
+    
+        <!-- Destination -->
+
+        <h3> The shortest path is {{ path }} </h3>
+
         <!-- Add fake buttons for start and destinations -->
         <div class="input-group mb-3">
             <div class="input-group-prepend">

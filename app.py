@@ -17,12 +17,13 @@ app = Flask(__name__)
 app.debug = True
 
 # Edges file
-dir_edges_list = gpd.read_file(r'static/data/edgelist_network.shp')
+dir_edges_list = gpd.read_file(r'static/data/edgelist_network.shp', encoding='utf-8')
 # Nodes file
-
+nodes = gpd.read_file(r'static/data/osm_nodes_epsg32632.shp', encoding='utf-8')
 # Intersection cost file
+cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='utf-8', sep=';')
 
-
+path = []
 # Python functions necessary for routing
 # Construct directed graph 
 def construct_digraph(dir_edges_list, nodes_df):
@@ -30,6 +31,17 @@ def construct_digraph(dir_edges_list, nodes_df):
     The pandas edgelist must have at least a source and target column and an attribute to use as weight: here source is u and target is v
     The nodes should have a unique id, here it is osmid
     """
+    # Make sure columns are in good type
+    # The osmid for nodes are stored as float values, so change them into integers. The problem is that it changes some values, creating omsids that do not exist
+    # First round the value ups and downs if saved with decimals
+    dir_edges_list['u'] = dir_edges_list['u'].round()
+    dir_edges_list['v'] = dir_edges_list['v'].round()
+    # Then change the data types of the columns in integer64
+    cols = ['u', 'v']
+    dir_edges_list[cols] = dir_edges_list[cols].applymap(np.int64)
+    
+    print(dir_edges_list.dtypes)
+
     G = nx.from_pandas_edgelist(dir_edges_list, source='u', target='v', edge_attr=True, create_using=nx.DiGraph(), edge_key='key')
 
     # Add attributes for nodes
@@ -39,6 +51,8 @@ def construct_digraph(dir_edges_list, nodes_df):
 
     # Specify a crs projection for osmnx
     G = nx.DiGraph(G, crs='epsg:32632')
+
+    return G
 
 # Find shortest path between two nodes using modified dijstra algorithm that includes intersection weight. There are 3 different functions (credit to Andrés Segura-Tinoco) 
 # Returns the node with a minimum own distance
@@ -79,7 +93,7 @@ def get_dijkstra_dist(graph, source, intersection_cost, verbose=False):
         # Update weights
         for w in nodes:
             if (v, w) in edges:
-                edge_cost = nx.get_edge_attributes(G, "PD")[v,w]
+                edge_cost = nx.get_edge_attributes(G, "PD_DWV")[v,w]
                 if v in intersection_cost['id_in'].unique():
                     pred = paths[v] # get predecessor from current node
                     # Get the turn cost in the df
@@ -102,8 +116,8 @@ def get_dijkstra_dist(graph, source, intersection_cost, verbose=False):
     return { 'distances': dists, 'paths': paths }
 
 # Show shortes path from source node to target node
-def get_shortest_path(dwg, source, target, verbose=False):
-    
+def get_shortest_path(dwg, source, target, intersection_cost, verbose=False):
+    global path
     # Validation
     if not source in dwg.nodes() or not target in dwg.nodes():
         print('Both the source and the target must exist in the graph.')
@@ -112,7 +126,7 @@ def get_shortest_path(dwg, source, target, verbose=False):
     start_time = timeit.default_timer()
     
     # Get the distance from 'source' to the other nodes
-    sol = get_dijkstra_dist(dwg, source, verbose)
+    sol = get_dijkstra_dist(dwg, source, intersection_cost, verbose)
     paths = sol['paths']
     
     # Get shortest path from 'source' to 'target'
@@ -145,13 +159,21 @@ def fahrenheit_from(celsius):
 # Different app routes
 @app.route('/')
 def index():
+    global path
+    G = construct_digraph(dir_edges_list=dir_edges_list, nodes_df=nodes)
+    start  = request.args.get('start', "")
+    target  = request.args.get('target', "")
     celsius = request.args.get("celsius", "")
+    if start and target:
+        path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
     if celsius:
         fahrenheit  = fahrenheit_from(celsius)
-    else: fahrenheit = ""
+    else: 
+        fahrenheit = ""
     return render_template(
         'index.html', 
         fahrenheit=fahrenheit,
+        path=path,
         utc_dt=datetime.datetime.utcnow()
     )
 
