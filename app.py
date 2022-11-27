@@ -19,7 +19,7 @@ app.debug = True
 # Python functions necessary for routing
 def construct_digraph(dir_edges_list, nodes_df):
     """ Take a pandas edgelist and construct a directed graph using networkx
-    The pandas edgelist must have at least a source and target column : source is u and target is v, and at least one attribute to do the routing
+    The pandas edgelist must have at least a source and target column and an attribute to use as weight: here source is u and target is v
     The nodes should have a unique id, here it is osmid
     """
     G = nx.from_pandas_edgelist(dir_edges_list, source='u', target='v', edge_attr=True, create_using=nx.DiGraph(), edge_key='key')
