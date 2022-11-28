@@ -23,30 +23,44 @@
 
         <h3> The shortest path is {{ path }} </h3>
 
-        <form id="geosearch_dest">
-            <input type="text" placeholder="Adresse de départ" value="">
-        </form>
+        <!-- Add button to determine start and destination -->
 
-{#         <!-- Add fake buttons for start and destinations -->
+        <!-- Start button -->
         <div class="input-group mb-3">
+            <!-- Prepend, what is in front (image of marker) -->
             <div class="input-group-prepend">
-            <span class="input-group-text" id="basic-addon1">Dep</span>
-        </div>
-        <form id="geosearch_depart" >
-            <input type="text" value="" class="form-control" placeholder="Départ (ou clique sur carte)" aria-label="Départ" aria-describedby="basic-addon1">
-        </form>
+                <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dep.svg" width="35" height="15"> </span>
+            </div>
+            <!-- Geosearcher text box from Leaflet Geosearch-->
+            <form id="geosearch_depart">
+                <input type="text" placeholder="Adresse de départ (Ou clique sur carte)" value="">
+            </form>
+            <!-- Append, what is after text box (image of localisation) -->
+            <div class="input-group-append">
+                <button id="btnGetLoc" class="btn btn-outline-secondary current-location" data-end="start" type="button" title="Centrer sur votre position">
+                <img src="/static/img/current-location.svg" width="15" height="15">
+                </button>
+            </div>
+        </div> <!-- En start button -->
         <br>
-        <br>
+
+        <!-- Destination button -->
         <div class="input-group mb-3">
+            <!-- Prepend, what is in front (image of marker) -->
             <div class="input-group-prepend">
-            <span class="input-group-text" id="basic-addon2">Dest</span>
-        </div>
-        <form id="geosearch_dest" >
-            <input type="text" value="" class="form-control" placeholder="Destination (ou clique sur carte)" aria-label="Destination" aria-describedby="basic-addon1">
-        </form>  #}       
-        <br>
-        <!-- Add a get location button -->
-        <button type="button" class="btnGetLoc" id="btnGetLoc"> Localisation </button>
+                <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dest.svg" width="35" height="15"> </span>
+            </div>
+            <!-- Geosearcher text box from Leaflet Geosearch-->
+            <form id="geosearch_dest">
+                <input type="text" placeholder="Adresse de destination (Ou clique sur carte)" value="">
+            </form>
+            <!-- Append, what is after text box (image of localisation) -->
+            <div class="input-group-append">
+                <button id="btnGetLoc" class="btn btn-outline-secondary current-location" data-end="start" type="button" title="Centrer sur votre position">
+                <img src="/static/img/current-location.svg" width="15" height="15">
+                </button>
+            </div>
+        </div> <!-- End of destination button -->
 
 
     </div> <!-- end of sidebar -->

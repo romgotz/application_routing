@@ -52,8 +52,14 @@
         {% block content %} {% endblock %}
     </div>
 
-    <!-- Optional JavaScript -->
+    <div id="footer">
+        Développé par Romain Götz
+        <a href="https://github.com/romgotz/application_routing"><i class="bi-github"></i>Code source </a>
+        <a href="{{ url_for('static', filename='about.html') }}">À propos</a>
+        <br> </>    
+    </div>
 
+    <!-- Link to index.js -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj" crossorigin="anonymous"></script>
 
 </body>

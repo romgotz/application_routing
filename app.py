@@ -158,25 +158,29 @@ def get_shortest_path(dwg, source, target, intersection_cost, verbose=False):
     return { 'path': path, 'weight': weight }
 
 
-# Different app routes
+
 # 266194853
 # 563683908
+# Different app routes
+# Index definition, main page of the application
 @app.route('/')
 def index():
     global path
+    # Construct the graph when pages is reached
     construct_digraph(dir_edges_list, nodes)
+    # To redirect to url with start and target values 
     start  = request.args.get('start', "")
     target  = request.args.get('target', "")
-    celsius = request.args.get("celsius", "")
     if start and target:
         start = int(start)
         target = int(target) # change string into integers
         path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
+
     return render_template(
         'index.html', 
         path=path,
     )
-
+# Page about ot give details and supplementary information 
 @app.route('/about/')
 def about():
     return render_template('about.html')

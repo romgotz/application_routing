@@ -101,25 +101,30 @@ const OSMprovider = new OpenStreetMapProvider({
   },
 });
 
+// For start
 const form_depart = document.getElementById('geosearch_depart')
-const form_dest = document.getElementById('geosearch_dest')
+console.log(form_depart)
 const input_dep = form_depart.querySelector('input[type="text"]');
-const input_dest = form_dest.querySelector('input[type="text"]');
-
 
 form_depart.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const results = await OSMprovider.search({ query: input.value });
+  const results = await OSMprovider.search({ query: input_dep.value });
   console.log(results); // » [{}, {}, {}, ...]
   // L.marker([results.x, results.y], {icon: icone_depart}).addTo(map)
 });
 
+// For destination
+// Geosearching for start
+const form_dest = document.getElementById('geosearch_dest')
+const input_dest = form_dest.querySelector('input[type="text"]');
+
 form_dest.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const results = await OSMprovider.search({ query: input.value });
+  const results = await OSMprovider.search({ query: input_dest.value });
   console.log(results); // » [{}, {}, {}, ...]
   // L.marker([results.x, results.y], {icon: icone_depart}).addTo(map)
 });
+
 
 /* 
 var popup = L.popup()
