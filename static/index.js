@@ -3,18 +3,18 @@
 
 map.addControl(searchControl); */
 
-
 // 2. Define icons for start/destination markers
 const icone_depart = L.icon({
     iconUrl: 'static/img/marker_dep.svg',
-    iconSize: [35,95],
-    iconAnchor:   [22, 94], // point of the icon which will correspond to marker's location
-    popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34]
 });
 const icone_dest = L.icon({
-    iconUrl: 'static/img/marker_destination.svg', 
-    iconSize: [35,95],
-    iconAnchor:   [22, 94], // point of the icon which will correspond to marker's location
+    iconUrl: 'static/img/marker_dest.svg', 
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34]
     });
 
 
@@ -59,9 +59,8 @@ L.DomEvent.on(document.getElementById('btnGetLoc'), 'click', function(){
 
 // Display marker at localisation 
 function onLocationFound(e) {
-  var radius = e.accuracy;
   L.marker(e.latlng, {icon:icone_depart}).addTo(map)
-  L.circle(e.latlng, radius).addTo(map);
+
 };
 
 // Add it to the map
@@ -103,14 +102,16 @@ const OSMprovider = new OpenStreetMapProvider({
 
 // For start
 const form_depart = document.getElementById('geosearch_depart')
-console.log(form_depart)
 const input_dep = form_depart.querySelector('input[type="text"]');
 
 form_depart.addEventListener('submit', async (event) => {
   event.preventDefault();
   const results = await OSMprovider.search({ query: input_dep.value });
-  console.log(results); // » [{}, {}, {}, ...]
-  // L.marker([results.x, results.y], {icon: icone_depart}).addTo(map)
+  lon = results[0]['x'] // take the first result (if many results)
+  lat = results[0]['y'] // take the first result (if many results)
+  // Put a marker on the adresse
+  L.marker([lat,lon], {icon: icone_depart}).addTo(map)
+    
 });
 
 // For destination
@@ -121,8 +122,10 @@ const input_dest = form_dest.querySelector('input[type="text"]');
 form_dest.addEventListener('submit', async (event) => {
   event.preventDefault();
   const results = await OSMprovider.search({ query: input_dest.value });
-  console.log(results); // » [{}, {}, {}, ...]
-  // L.marker([results.x, results.y], {icon: icone_depart}).addTo(map)
+  lon = results[0]['x'] // take the first result (if many results)
+  lat = results[0]['y'] // take the first result (if many results)
+  console.log(lon,lat)
+  L.marker([lat,lon], {icon: icone_dest}).addTo(map)
 });
 
 

@@ -180,7 +180,7 @@ def index():
         'index.html', 
         path=path,
     )
-# Page about ot give details and supplementary information 
+# Page about ot give details and supplementary information
 @app.route('/about/')
 def about():
     return render_template('about.html')
