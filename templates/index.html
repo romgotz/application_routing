@@ -13,40 +13,37 @@
         <!-- Explication about the web app -->
         <p id="explication"> Cette application permet de trouver un itinéraire à vélo le plus sûr et confortable possible. Définissez votre point de départ et destination, soit en cliquant sur la carte soit en cherchant l'adresse.</p>
 
-        <!-- Dummy function to see interaction btw html and flask-->
-        <form action="" method="get">
-        Celsius temperature: <input type="text" name="celsius">
-        <input type="submit" value="Convert to fahrenheit">
-        </form>
-        <h3> The converted temperature is {{ fahrenheit }} </h3>
-
         <!-- Two buttons for dest and dep-->
         <!-- Depart --> 
-        <form action="" method="get">
+        <form id="nodes" action="" method="get">
         Depart osmid: <input type="text" name="start">
         Arrive osmid: <input type="text" name="target">
         <input type="submit" value="Calculer itinéraire">
         </form>
 
-    
-        <!-- Destination -->
-
         <h3> The shortest path is {{ path }} </h3>
 
-        <!-- Add fake buttons for start and destinations -->
+        <form id="geosearch_dest">
+            <input type="text" placeholder="Adresse de départ" value="">
+        </form>
+
+{#         <!-- Add fake buttons for start and destinations -->
         <div class="input-group mb-3">
             <div class="input-group-prepend">
             <span class="input-group-text" id="basic-addon1">Dep</span>
         </div>
-        <input type="text" class="form-control" placeholder="Départ (ou clique sur carte)" aria-label="Départ" aria-describedby="basic-addon1">
+        <form id="geosearch_depart" >
+            <input type="text" value="" class="form-control" placeholder="Départ (ou clique sur carte)" aria-label="Départ" aria-describedby="basic-addon1">
+        </form>
         <br>
         <br>
         <div class="input-group mb-3">
             <div class="input-group-prepend">
             <span class="input-group-text" id="basic-addon2">Dest</span>
         </div>
-        <input type="text" class="form-control" placeholder="Destination (ou clique sur carte)" aria-label="Destination" aria-describedby="basic-addon2">
-
+        <form id="geosearch_dest" >
+            <input type="text" value="" class="form-control" placeholder="Destination (ou clique sur carte)" aria-label="Destination" aria-describedby="basic-addon1">
+        </form>  #}       
         <br>
         <!-- Add a get location button -->
         <button type="button" class="btnGetLoc" id="btnGetLoc"> Localisation </button>

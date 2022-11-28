@@ -16,31 +16,41 @@ import timeit
 app = Flask(__name__)
 app.debug = True
 
+
+# Download file
 # Edges file
 dir_edges_list = gpd.read_file(r'static/data/edgelist_network.shp', encoding='utf-8')
 # Nodes file
 nodes = gpd.read_file(r'static/data/osm_nodes_epsg32632.shp', encoding='utf-8')
 # Intersection cost file
 cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='utf-8', sep=';')
+# Change some columns types : somid for nodes and edges are often stored as float values, so change them into integers
+dir_edges_list['u'] = dir_edges_list['u'].round()
+dir_edges_list['v'] = dir_edges_list['v'].round()
+# Then change the data types of the columns in integer64
+cols = ['u', 'v']
+dir_edges_list[cols] = dir_edges_list[cols].applymap(np.int64)
+# Same for cost intersection
+cost_intersection['id_in'].fillna(0, inplace=True) # Fill nan with 0, otherwise error raised
+cost_intersection['id_in'] = cost_intersection['id_in'].round()
+cost_intersection[['id_in']] = cost_intersection[['id_in']].applymap(np.int64)
+# Put all costs into one column
+cost_intersection['cost_movement'] = cost_intersection['Cost_unsignalized']
+cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'] = cost_intersection['Cost_signalized']
+cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'] = cost_intersection['cost_mini_roundabout']
+cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'] = 0
+
+# same for nodes osmid
+nodes['osmid']  = nodes['osmid'].round()
+nodes[['osmid']] = nodes[['osmid']].applymap(np.int64)
+# Remove some columns
+nodes.drop(columns=['field_1', 'Unnamed_ 0'], inplace=True)
 
 path = []
 # Python functions necessary for routing
 # Construct directed graph 
 def construct_digraph(dir_edges_list, nodes_df):
-    """ Take a pandas edgelist and construct a directed graph using networkx
-    The pandas edgelist must have at least a source and target column and an attribute to use as weight: here source is u and target is v
-    The nodes should have a unique id, here it is osmid
-    """
-    # Make sure columns are in good type
-    # The osmid for nodes are stored as float values, so change them into integers. The problem is that it changes some values, creating omsids that do not exist
-    # First round the value ups and downs if saved with decimals
-    dir_edges_list['u'] = dir_edges_list['u'].round()
-    dir_edges_list['v'] = dir_edges_list['v'].round()
-    # Then change the data types of the columns in integer64
-    cols = ['u', 'v']
-    dir_edges_list[cols] = dir_edges_list[cols].applymap(np.int64)
-    
-    print(dir_edges_list.dtypes)
+    global G # define G as global so it is also defined outside of the function
 
     G = nx.from_pandas_edgelist(dir_edges_list, source='u', target='v', edge_attr=True, create_using=nx.DiGraph(), edge_key='key')
 
@@ -94,13 +104,15 @@ def get_dijkstra_dist(graph, source, intersection_cost, verbose=False):
         for w in nodes:
             if (v, w) in edges:
                 edge_cost = nx.get_edge_attributes(G, "PD_DWV")[v,w]
+                in_cost = 0
                 if v in intersection_cost['id_in'].unique():
                     pred = paths[v] # get predecessor from current node
                     # Get the turn cost in the df
+                    print("v is %s\n w is %s \n pred is % s" % (v,w,pred))
                     row_mov = intersection_cost.loc[(intersection_cost['id_anf']==pred) & (intersection_cost['id_in']== v) & (intersection_cost['id_ant'] == w)]
-                    print(row_mov)
                     # get the cost value
-                    in_cost = row_mov.iat[-1, -1]
+                    if len(row_mov)!= 0:
+                        in_cost = row_mov.iat[-1, -1]
                 
                 if dists[w] > dists[v] + edge_cost + in_cost:
                     dists[w] = dists[v] + edge_cost + in_cost
@@ -117,7 +129,6 @@ def get_dijkstra_dist(graph, source, intersection_cost, verbose=False):
 
 # Show shortes path from source node to target node
 def get_shortest_path(dwg, source, target, intersection_cost, verbose=False):
-    global path
     # Validation
     if not source in dwg.nodes() or not target in dwg.nodes():
         print('Both the source and the target must exist in the graph.')
@@ -147,34 +158,23 @@ def get_shortest_path(dwg, source, target, intersection_cost, verbose=False):
     return { 'path': path, 'weight': weight }
 
 
-def fahrenheit_from(celsius):
-    """Convert Celsius to Fahrenheit degrees."""
-    try:
-        fahrenheit = float(celsius) * 9 / 5 + 32
-        fahrenheit = round(fahrenheit, 3)  # Round to three decimal places
-        return str(fahrenheit)
-    except ValueError:
-        return "invalid input"
-
 # Different app routes
+# 266194853
+# 563683908
 @app.route('/')
 def index():
     global path
-    G = construct_digraph(dir_edges_list=dir_edges_list, nodes_df=nodes)
+    construct_digraph(dir_edges_list, nodes)
     start  = request.args.get('start', "")
     target  = request.args.get('target', "")
     celsius = request.args.get("celsius", "")
     if start and target:
+        start = int(start)
+        target = int(target) # change string into integers
         path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
-    if celsius:
-        fahrenheit  = fahrenheit_from(celsius)
-    else: 
-        fahrenheit = ""
     return render_template(
         'index.html', 
-        fahrenheit=fahrenheit,
         path=path,
-        utc_dt=datetime.datetime.utcnow()
     )
 
 @app.route('/about/')
