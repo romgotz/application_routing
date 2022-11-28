@@ -1,16 +1,19 @@
-/* 
+const btn = document.querySelector('.send__data__btn');
 
+btn.addEventListener('click', function () {
 
-map.addControl(searchControl); */
+  
+});
+
 
 // 2. Define icons for start/destination markers
-const icone_depart = L.icon({
+var icone_depart = L.icon({
     iconUrl: 'static/img/marker_dep.svg',
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -34]
 });
-const icone_dest = L.icon({
+var icone_dest = L.icon({
     iconUrl: 'static/img/marker_dest.svg', 
     iconSize: [25, 41],
     iconAnchor: [12, 41],
@@ -106,41 +109,81 @@ const input_dep = form_depart.querySelector('input[type="text"]');
 
 form_depart.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const results = await OSMprovider.search({ query: input_dep.value });
-  lon = results[0]['x'] // take the first result (if many results)
-  lat = results[0]['y'] // take the first result (if many results)
+  const results_dep = await OSMprovider.search({ query: input_dep.value });
+  lon = results_dep[0]['x'];// take the first result (if many results)
+  lat = results_dep[0]['y']; // take the first result (if many results)
   // Put a marker on the adresse
-  L.marker([lat,lon], {icon: icone_depart}).addTo(map)
+  L.marker([lat,lon], {icon: icone_depart}).addTo(map);
+  fetch('/', {
+    headers : {
+        'Content-Type' : 'application/json'
+    },
+    method : 'POST',
+    body : JSON.stringify( {
+        'lon' : lon,
+        'lat' : lat
+    })
+    })
+  .then(function (response){
+
+    if(response.ok) {
+        response.json()
+        .then(function(response) {
+            console.log(response);
+        });
+    }
+    else {
+        throw Error('Something went wrong');
+    }
+    })
+  .catch(function(error) {
+    console.log(error);
+    })
+
     
-});
+}); // End geosearching
 
 // For destination
 // Geosearching for start
-const form_dest = document.getElementById('geosearch_dest')
+const form_dest = document.getElementById('geosearch_dest');
 const input_dest = form_dest.querySelector('input[type="text"]');
 
 form_dest.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const results = await OSMprovider.search({ query: input_dest.value });
-  lon = results[0]['x'] // take the first result (if many results)
-  lat = results[0]['y'] // take the first result (if many results)
+  const results_dest = await OSMprovider.search({ query: input_dest.value });
+  lon = results_dest[0]['x']; // take the first result (if many results)
+  lat = results_dest[0]['y']; // take the first result (if many results)
   console.log(lon,lat)
-  L.marker([lat,lon], {icon: icone_dest}).addTo(map)
+  L.marker([lat,lon], {icon: icone_dest}).addTo(map);
+  // Need to send those variables to python app.py
+  fetch('/', {
+    headers : {
+        'Content-Type' : 'application/json'
+    },
+    method : 'POST',
+    body : JSON.stringify( {
+        'lon' : lon,
+        'lat' : lat
+    })
+    })
+  .then(function (response){
+
+    if(response.ok) {
+        response.json()
+        .then(function(response) {
+            console.log(response);
+        });
+    }
+    else {
+        throw Error('Something went wrong');
+    }
+    })
+  .catch(function(error) {
+    console.log(error);
+    })
 });
 
 
-/* 
-var popup = L.popup()
-    .setLatLng([46.516662, 6.627789])
-    .setContent("I am a standalone popup.")
-    .openOn(map);
-
-function onMapClick(e) {
-    popup
-        .setLatLng(e.latlng)
-        .setContent("You clicked the map at " + e.latlng.toString())
-        .openOn(map);
-} */
 
 // On ajoute la frontière de Lausanne sur le fond de carte
 

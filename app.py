@@ -2,6 +2,7 @@
 from flask import Flask, render_template, url_for, abort, request, jsonify
 from markupsafe import escape
 # importe python modules specific for own code
+import json
 import datetime
 import math
 import time
@@ -12,6 +13,7 @@ import osmnx as ox
 import networkx as nx
 import math
 import timeit
+from pyproj import Proj
 
 app = Flask(__name__)
 app.debug = True
@@ -59,8 +61,6 @@ def construct_digraph(dir_edges_list, nodes_df):
     # then add nodes attributes in the Graph 
     nx.set_node_attributes(G, nodes_attr)
 
-    # Specify a crs projection for osmnx
-    G = nx.DiGraph(G, crs='epsg:32632')
 
     return G
 
@@ -158,16 +158,26 @@ def get_shortest_path(dwg, source, target, intersection_cost, verbose=False):
     return { 'path': path, 'weight': weight }
 
 
-
 # 266194853
 # 563683908
 # Different app routes
 # Index definition, main page of the application
-@app.route('/')
+@app.route('/', methods=["GET", "POST"])
 def index():
-    global path
     # Construct the graph when pages is reached
     construct_digraph(dir_edges_list, nodes)
+    # Receive lat/lon from geosearching
+    if request.method == "POST":
+        jsonData = request.get_json()
+        print(jsonData)
+        print(type(jsonData))
+        orig_x = jsonData['lon']
+        orig_y = jsonData['lat']
+        orig_node_id, dist_to_orig = ox.distance.nearest_nodes(G, X=orig_x, Y=orig_y, return_dist=True)
+        print("Origin node-id: ", orig_node_id, "and distance:", dist_to_orig, "meters.")
+
+    global path
+
     # To redirect to url with start and target values 
     start  = request.args.get('start', "")
     target  = request.args.get('target', "")
@@ -178,22 +188,13 @@ def index():
 
     return render_template(
         'index.html', 
-        path=path,
+        path=path
     )
+
 # Page about ot give details and supplementary information
 @app.route('/about/')
 def about():
     return render_template('about.html')
-
-@app.route('/comments/')
-def comments():
-    comments = ['This is the first comment.',
-                'This is the second comment.',
-                'This is the third comment.',
-                'This is the fourth comment.'
-                ]
-
-    return render_template('comments.html', comments=comments)
 
 if __name__ == '__main__':
     app.run()
