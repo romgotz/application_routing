@@ -1,3 +1,4 @@
 templates/comments.html
 templates/base.html
 app.py
+static/index.js

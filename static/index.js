@@ -79,17 +79,7 @@ function onLocationFound(e) {
     marker_dep_exist = true;
     lat_dep = e.latlng.lat;
     lon_dep = e.latlng.lng;
-/*  // Add fetch to send it to flask app
-    fetch('/', {
-    headers : {
-        'Content-Type' : 'application/json'
-    },
-    method : 'POST',
-    body : JSON.stringify( {
-    "lon_dep" : lon_dep,
-    "lat_dep" : lat_dep
-    })
-    }) // end of fetch for start */
+
   } else if (button_id==='btnGetLocDest') { // add marker for destination
     marker_dest = L.marker(e.latlng, {icon:icone_dest}, {draggable: true}).addTo(map);
     marker_dest_exist = true;
@@ -148,7 +138,6 @@ function onMapClick(e) {
   }; // end else statement  
   // If all lon/lat exist, send them to python
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
-  console.log("All lat/lon exist, sending them to flask using fetch")
   // Add fetch to send it to flask app
   fetch('/', {
   headers : {
@@ -225,9 +214,7 @@ form_depart.addEventListener('submit', async (event) => {
   lat_dep = results_dep[0]['y']; // take the first result (if many results)
   // Put a marker on the adresse
   L.marker([lat_dep,lon_dep], {icon: icone_depart}).addTo(map);
-  console.log("The lat lon have been defined for the start")
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
-    console.log("All lat/lon exist, sending them to flask using fetch")
     // Add fetch to send it to flask app
     fetch('/', {
     headers : {
@@ -276,10 +263,8 @@ form_dest.addEventListener('submit', async (event) => {
   lon_dest = results_dest[0]['x']; // take the first result (if many results)
   lat_dest = results_dest[0]['y']; // take the first result (if many results)
   L.marker([lat_dest,lon_dest], {icon: icone_dest}).addTo(map);
-  console.log("The destination adresse has been defined")
   // Need to send those variables to python app.py
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
-    console.log("All lat/lon exist, sending them to flask using fetch")
     // Add fetch to send it to flask app
     fetch('/', {
     headers : {
