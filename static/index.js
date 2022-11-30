@@ -50,6 +50,12 @@ var marker
 marker_exist = false
 
 // 3.1 Get actual localisation by click on a button
+// Declare lat/lon as false, need to have 4 values before data is sent to flask 
+lat_dep= false
+lat_dest = false
+lon_dep = false
+lon_dest = false
+
 // Deal with the event, either click on start or destination 
 // For start 
 L.DomEvent.on(document.getElementById('btnGetLocStart'), 'click', function(){
@@ -73,7 +79,7 @@ function onLocationFound(e) {
     marker_dep_exist = true;
     lat_dep = e.latlng.lat;
     lon_dep = e.latlng.lng;
-    // Add fetch to send it to flask app
+/*  // Add fetch to send it to flask app
     fetch('/', {
     headers : {
         'Content-Type' : 'application/json'
@@ -83,13 +89,16 @@ function onLocationFound(e) {
     "lon_dep" : lon_dep,
     "lat_dep" : lat_dep
     })
-    }) // end of fetch for start
-  } else { // add marker for destination
+    }) // end of fetch for start */
+  } else if (button_id==='btnGetLocDest') { // add marker for destination
     marker_dest = L.marker(e.latlng, {icon:icone_dest}, {draggable: true}).addTo(map);
     marker_dest_exist = true;
     lat_dest = e.latlng.lat;
     lon_dest = e.latlng.lng;
-    // Add fetch to send it to flask app
+  } ; // end else
+  // If 4 lat/lon exists, then send it to python using fetch
+  if (lat_dep && lat_dest && lon_dep && lon_dest) {
+    console.log("All lat/lon exist, sending them to flask using fetch")
     fetch('/', {
       headers : {
           'Content-Type' : 'application/json'
@@ -100,7 +109,10 @@ function onLocationFound(e) {
       "lat_dest" : lat_dest
     })
     }) // end of fetch for dest
-  } // end of else statement 
+  } else {
+    console.log("All lat/lon do not exist yet")
+  } // End of if for fetch
+
 }; // end of location found
 
 // Add it to the map
@@ -111,27 +123,111 @@ map.on('locationfound', onLocationFound);
 //map.on('click', addMarker);
 // Have to add difference btw 1st click = depart and 2nd click = destination
 
-// var marker = L.marker({icon:icone_depart})
 var click = 0
 function onMapClick(e) {
-  if (click > 2) {
+  if (click >= 2) {
     alert("Vous pouvez seulement définir un point de départ et un point de destination. Vous pouvez soit appuyer sur le bouton reset ou déplacer les marqueurs existants")
     return
   };
   click += 1
-  lat_dep = e.latlng.lat;
-  lon_dep = e.latlng.lng;
-  // Add marker at click button
-  marker_dep = L.marker(e.latlng, {icon:icone_depart}, {draggable: true}).addTo(map);
-  marker_exist = true
-  if (click===2){
-    click += 1
-    console.log("This click is to determine the destination. The data are now sent into flask")
+  if (lat_dep && lon_dep) {
+    console.log("This click is to determine the destination.")
+    // Get lat/lon coordinates
     lat_dest = e.latlng.lat;
     lon_dest = e.latlng.lng;
     // Add marker at click button
     marker_dest = L.marker(e.latlng, {icon:icone_dest}, {draggable: true}).addTo(map);
-    marker_exist = true
+    marker_exist = true;
+  } else {
+    console.log("This click is to determine the start")
+    lat_dep = e.latlng.lat;
+    lon_dep = e.latlng.lng;
+    // Add marker at the coordinates
+    marker_dest = L.marker(e.latlng, {icon:icone_depart}, {draggable: true}).addTo(map);
+    marker_exist = true;
+  }; // end else statement  
+  // If all lon/lat exist, send them to python
+  if (lat_dep && lat_dest && lon_dep && lon_dest) {
+  console.log("All lat/lon exist, sending them to flask using fetch")
+  // Add fetch to send it to flask app
+  fetch('/', {
+  headers : {
+      'Content-Type' : 'application/json'
+  },
+  method : 'POST',
+  body : JSON.stringify( {
+  "lon_dep" : lon_dep,
+  "lat_dep" : lat_dep,
+  "lon_dest" : lon_dest,
+  "lat_dest" : lat_dest
+  })
+  })
+  .then(function (response){
+    if(response.ok) {
+        response.json()
+        .then(function(response) {
+            console.log(response);
+            console.log("The sending of the data from python file works")
+        });
+    }
+    else {
+        throw Error('Something went wrong');
+    }
+    })
+  .catch(function(error) {
+    console.log(error);
+    })
+
+  }; // Enf of if condition for fetch 
+  
+}; // end of click function
+
+// Deal with the event on map
+map.on('click', onMapClick);
+
+// 4.3 Geosearching adresse
+
+// Setting geosearch control button
+var OpenStreetMapProvider = window.GeoSearch.OpenStreetMapProvider;
+// var GeoSearchControl = window.GeoSearch.GeoSearchControl;
+
+// Define parameters for geosearching
+const OSMprovider = new OpenStreetMapProvider({
+  params: {
+    'accept-language': 'fr', // render results in French
+    countrycodes: 'ch', // limit search results to the Switzerland
+    autoClose: true,
+    autoComplete: true
+  },
+});
+
+/* const searchControl = new GeoSearchControl({
+  provider: new OpenStreetMapProvider(),
+  style: 'bar',
+  //--------
+  // if autoComplete is false, need manually calling provider.search({ query: input.value })
+  autoComplete: true,         // optional: true|false  - default true
+  autoCompleteDelay: 250
+}) */
+
+// For start
+const form_depart = document.getElementById('geosearch_depart')
+const input_dep = form_depart.querySelector('input[type="text"]');
+
+form_depart.addEventListener('submit', async (event) => {
+  if (lat_dep && lon_dep) {
+    alert("Vous avez déjà déterminé le point de départ. Voulez-vous définir un nouveau point de départ ?")
+    return 
+  };
+  event.preventDefault();
+  const results_dep = await OSMprovider.search({ query: input_dep.value });
+  lon_dep = results_dep[0]['x'];// take the first result (if many results)
+  lat_dep = results_dep[0]['y']; // take the first result (if many results)
+  // Put a marker on the adresse
+  L.marker([lat_dep,lon_dep], {icon: icone_depart}).addTo(map);
+  console.log("The lat lon have been defined for the start")
+  if (lat_dep && lat_dest && lon_dep && lon_dest) {
+    console.log("All lat/lon exist, sending them to flask using fetch")
     // Add fetch to send it to flask app
     fetch('/', {
     headers : {
@@ -160,113 +256,58 @@ function onMapClick(e) {
     .catch(function(error) {
       console.log(error);
       })
-
-  }; // end of 2nd if statement (click = 2)
   
-
-} // end of click function
-
-// Deal with the event on map
-map.on('click', onMapClick);
-
-// 4.3 Geosearching adresse
-
-// Setting geosearch control button
-// var GeoSearchControl = window.GeoSearch.GeoSearchControl;
-var OpenStreetMapProvider = window.GeoSearch.OpenStreetMapProvider;
-
-// Define parameters for geosearching
-const OSMprovider = new OpenStreetMapProvider({
-  params: {
-    'accept-language': 'fr', // render results in French
-    countrycodes: 'ch', // limit search results to the Switzerland
-    autoClose: true,
-    autoComplete: true
-  },
-});
-
-// For start
-const form_depart = document.getElementById('geosearch_depart')
-const input_dep = form_depart.querySelector('input[type="text"]');
-
-form_depart.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const results_dep = await OSMprovider.search({ query: input_dep.value });
-  lon = results_dep[0]['x'];// take the first result (if many results)
-  lat = results_dep[0]['y']; // take the first result (if many results)
-  // Put a marker on the adresse
-  L.marker([lat,lon], {icon: icone_depart}).addTo(map);
-  fetch('/', {
-    headers : {
-        'Content-Type' : 'application/json'
-    },
-    method : 'POST',
-    body : JSON.stringify( {
-        "lon" : lon,
-        "lat" : lat
-    })
-    })
-  .then(function (response){
-    if(response.ok) {
-        response.json()
-        .then(function(response) {
-            console.log(response);
-            console.log("The sending of the data from python file works")
-        });
-    }
-    else {
-        throw Error('Something went wrong');
-    }
-    })
-  .catch(function(error) {
-    console.log(error);
-    })
-
+    }; // 
     
-}); // End geosearching
+}); // End geosearching depart
 
 // For destination
-// Geosearching for start
+// Geosearching for destination
 const form_dest = document.getElementById('geosearch_dest');
 const input_dest = form_dest.querySelector('input[type="text"]');
 
 form_dest.addEventListener('submit', async (event) => {
-  console.log("lon from depart", lon)
+  if (lat_dest && lon_dest) {
+    alert("Vous avez déjà déterminé la destination. Voulez-vous définir une nouvelle destination ?")
+    return 
+  };
   event.preventDefault();
   const results_dest = await OSMprovider.search({ query: input_dest.value });
-  lon = results_dest[0]['x']; // take the first result (if many results)
-  lat = results_dest[0]['y']; // take the first result (if many results)
-  console.log(lon,lat)
-  L.marker([lat,lon], {icon: icone_dest}).addTo(map);
+  lon_dest = results_dest[0]['x']; // take the first result (if many results)
+  lat_dest = results_dest[0]['y']; // take the first result (if many results)
+  L.marker([lat_dest,lon_dest], {icon: icone_dest}).addTo(map);
+  console.log("The destination adresse has been defined")
   // Need to send those variables to python app.py
-  fetch('/', {
+  if (lat_dep && lat_dest && lon_dep && lon_dest) {
+    console.log("All lat/lon exist, sending them to flask using fetch")
+    // Add fetch to send it to flask app
+    fetch('/', {
     headers : {
         'Content-Type' : 'application/json'
     },
     method : 'POST',
     body : JSON.stringify( {
-        "lon" : lon,
-        "lat" : lat
+    "lon_dep" : lon_dep,
+    "lat_dep" : lat_dep,
+    "lon_dest" : lon_dest,
+    "lat_dest" : lat_dest
     })
     })
-  .then(function (response){
-
-    if(response.ok) {
-        response.json()
-        .then(function(response) {
-            console.log(response);
-        });
-    }
-    else {
-        throw Error('Something went wrong');
-    }
-    })
-  .catch(function(error) {
-    console.log(error);
-    })
+    .then(function (response){
+      if(response.ok) {
+          response.json()
+          .then(function(response) {
+              console.log(response);
+              console.log("The sending of the data from python file works")
+          });
+      }
+      else {
+          throw Error('Something went wrong');
+      }
+      })
+    .catch(function(error) {
+      console.log(error);
+      })
+  
+    }; // 
 });
-
-
-
-// On ajoute la frontière de Lausanne sur le fond de carte
-
