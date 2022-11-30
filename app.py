@@ -191,6 +191,8 @@ def index():
         # print("Origin node-id: ", orig_node_id, "and distance:", dist_to_orig, "meters.")
 
     # To redirect to url with start and target values 
+    start = 266194853
+    target = 563683908
     start  = request.args.get('start', "")
     target  = request.args.get('target', "")
     if start and target:
