@@ -108,7 +108,6 @@ def get_dijkstra_dist(graph, source, intersection_cost, verbose=False):
                 if v in intersection_cost['id_in'].unique():
                     pred = paths[v] # get predecessor from current node
                     # Get the turn cost in the df
-                    print("v is %s\n w is %s \n pred is % s" % (v,w,pred))
                     row_mov = intersection_cost.loc[(intersection_cost['id_anf']==pred) & (intersection_cost['id_in']== v) & (intersection_cost['id_ant'] == w)]
                     # get the cost value
                     if len(row_mov)!= 0:
@@ -166,17 +165,30 @@ def get_shortest_path(dwg, source, target, intersection_cost, verbose=False):
 def index():
     # Construct the graph when pages is reached
     construct_digraph(dir_edges_list, nodes)
+    global path   
     # Receive lat/lon from geosearching
     if request.method == "POST":
-        jsonData = request.get_json()
-        print(jsonData)
-        print(type(jsonData))
-        orig_x = jsonData['lon']
-        orig_y = jsonData['lat']
-        orig_node_id, dist_to_orig = ox.distance.nearest_nodes(G, X=orig_x, Y=orig_y, return_dist=True)
-        print("Origin node-id: ", orig_node_id, "and distance:", dist_to_orig, "meters.")
+        # Get the lat/lon of start and destination places
+        latlngData = request.get_json()
+        print(latlngData)
+        orig_lon= latlngData['lon_dep']
+        orig_lat = latlngData['lat_dep']
+        dest_lon= latlngData['lon_dest']
+        dest_lat = latlngData['lat_dest']
 
-    global path
+        # !!!! Need to add function to get the nearest node from the lon and latitude. It exists in OWMnx but it gives strange result, probably a problem of CRS
+        # Fixed nodes osmid to run find shortest path algorithm
+        start = 266194853
+        target = 563683908
+        # Find the shortest path btw two nodes
+        # path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
+        # print(path)
+        # Send it to js
+        return {
+            "response": "it works"
+        }
+        # orig_node_id, dist_to_orig = ox.distance.nearest_nodes(G, X=orig_x, Y=orig_y, return_dist=True)
+        # print("Origin node-id: ", orig_node_id, "and distance:", dist_to_orig, "meters.")
 
     # To redirect to url with start and target values 
     start  = request.args.get('start', "")
