@@ -13,18 +13,17 @@
         <!-- Explication about the web app -->
         <p id="explication"> Cette application permet de trouver un itinéraire à vélo le plus sûr et confortable possible. Définissez votre point de départ et destination, soit en cliquant sur la carte soit en cherchant l'adresse.</p>
 
-        <!-- Two buttons for dest and dep-->
+{#         <!-- Two buttons for dest and dep-->
         <!-- Depart --> 
         <form id="nodes" action="" method="get">
         Depart osmid: <input type="text" name="start">
         Arrive osmid: <input type="text" name="target">
         <input type="submit" value="Calculer itinéraire">
-        </form>
-
-        <h3> The shortest path is {{ path }} </h3>
+        </form> #}
+        <!-- printing the shortest path result -->
+        <p> The shortest path is {{ path }} </p>
 
         <!-- Add button to determine start and destination -->
-
         <!-- Start button -->
         <div class="input-group mb-3">
             <!-- Prepend, what is in front (image of marker) -->
@@ -37,7 +36,7 @@
             </form>
             <!-- Append, what is after text box (image of localisation) -->
             <div class="input-group-append">
-                <button id="btnGetLoc" class="btn btn-outline-secondary current-location" data-end="start" type="button" title="Centrer sur votre position">
+                <button id="btnGetLocStart" class="btn btn-outline-secondary current-location"  type="button" title="Centrer sur votre position">
                 <img src="/static/img/current-location.svg" width="15" height="15">
                 </button>
             </div>
@@ -56,7 +55,7 @@
             </form>
             <!-- Append, what is after text box (image of localisation) -->
             <div class="input-group-append">
-                <button id="btnGetLoc" class="btn btn-outline-secondary current-location" data-end="start" type="button" title="Centrer sur votre position">
+                <button id="btnGetLocDest" class="btn btn-outline-secondary current-location" type="button" title="Centrer sur votre position">
                 <img src="/static/img/current-location.svg" width="15" height="15">
                 </button>
             </div>
