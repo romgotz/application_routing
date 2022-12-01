@@ -32,13 +32,16 @@ cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='
 # Change crs of edges and nodes to match with leaflet
 dir_edges_list_epsg4326 = dir_edges_list.to_crs(epsg=4326)
 nodes_epsg4326 = nodes.to_crs(epsg=4326)
+# Epsg 3857 
+dir_edges_list_epsg3857 = dir_edges_list.to_crs(epsg=3857)
+nodes_epsg3857 = nodes.to_crs(epsg=3857)
 
 # Change some columns types : somid for nodes and edges are often stored as float values, so change them into integers
-dir_edges_list_epsg4326['u'] = dir_edges_list_epsg4326['u'].round()
-dir_edges_list_epsg4326['v'] = dir_edges_list_epsg4326['v'].round()
+dir_edges_list_epsg3857['u'] = dir_edges_list_epsg3857['u'].round()
+dir_edges_list_epsg3857['v'] = dir_edges_list_epsg3857['v'].round()
 # Then change the data types of the columns in integer64
 cols = ['u', 'v']
-dir_edges_list_epsg4326[cols] = dir_edges_list_epsg4326[cols].applymap(np.int64)
+dir_edges_list_epsg3857[cols] = dir_edges_list_epsg3857[cols].applymap(np.int64)
 # Same for cost intersection
 cost_intersection['id_in'].fillna(0, inplace=True) # Fill nan with 0, otherwise error raised
 cost_intersection['id_in'] = cost_intersection['id_in'].round()
@@ -75,11 +78,10 @@ def construct_digraph(dir_edges_list, nodes_df):
     print(crs_gdf)
     G = nx.DiGraph(G, crs=crs_gdf)
 
-    if ox.projection.is_projected("epsg:4326"):
+    if ox.projection.is_projected("epsg:3857"):
         print("Graph is projected") # make sure crs params is defined
     else:
         print("Graph is not projected")
-        # G = ox.project_graph(G, to_crs="epsg:4326")
  
     return G
 
@@ -183,7 +185,7 @@ def get_shortest_path(dwg, source, target, intersection_cost, verbose=False):
 @app.route('/', methods=["GET", "POST"])
 def index():
     # Construct the graph when pages is reached
-    construct_digraph(dir_edges_list_epsg4326, nodes_epsg4326)
+    construct_digraph(dir_edges_list=dir_edges_list_epsg3857, nodes_df=nodes_epsg3857)
     global path   
     # Receive lat/lon from geosearching
     if request.method == "POST":
@@ -211,13 +213,12 @@ def index():
         # Specify the type of each column when creating the dataframe to avoid errors 
         params_to_keep = ['u', 'v','oneway', 'name', 'DWV_ALLE', 'MSP_ALLE', 'ASP_ALLE', 'grade', 'TC_DWV', 'TC_MSP', 'TC_ASP', 'Am_cycl', 'geometry']
         # edges_path = dir_edges_list[cols_to_keep]
-        edges_df = dir_edges_list_epsg4326[params_to_keep]
+        edges_df = dir_edges_list_epsg3857[params_to_keep]
         edges_df.drop(edges_df.index[:], inplace=True)
-        print("edges_df length", len(edges_df))
         for i in range(0, len(nodes_path) - 1, 1):
             edge_u = nodes_path[i]
             edge_v = nodes_path[i+1]
-            edge = dir_edges_list.loc[( dir_edges_list_epsg4326['u']==edge_u ) & (dir_edges_list_epsg4326['v']==edge_v)]
+            edge = dir_edges_list.loc[( dir_edges_list_epsg3857['u']==edge_u ) & (dir_edges_list_epsg3857['v']==edge_v)]
             edge = edge[params_to_keep]
             edges_df = pd.concat([edges_df, edge])
 
