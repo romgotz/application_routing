@@ -91,6 +91,22 @@ function onLocationFound(e) {
       "lon_dest" : lon_dest,
       "lat_dest" : lat_dest
     })
+    .then(function (response){
+      if(response.ok) {
+          response.json()
+          .then(function(response) {
+              console.log(response);
+              console.log("The sending of the data from python file works")
+              L.geoJSON(response).addTo(map);
+          });
+      }
+      else {
+          throw Error('Something went wrong');
+      }
+      })
+    .catch(function(error) {
+      console.log(error);
+      })
     }) // end of fetch for dest
   } else {
     console.log("All lat/lon do not exist yet")
@@ -150,6 +166,7 @@ function onMapClick(e) {
         .then(function(response) {
             console.log(response);
             console.log("The sending of the data from python file works")
+            L.geoJSON(response).addTo(map);
         });
     }
     else {
@@ -227,6 +244,7 @@ form_depart.addEventListener('submit', async (event) => {
           .then(function(response) {
               console.log(response);
               console.log("The sending of the data from python file works")
+              L.geoJSON(response).addTo(map);
           });
       }
       else {
@@ -277,6 +295,7 @@ form_dest.addEventListener('submit', async (event) => {
           .then(function(response) {
               console.log(response);
               console.log("The sending of the data from python file works")
+              L.geoJSON(response).addTo(map);
           });
       }
       else {
