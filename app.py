@@ -53,15 +53,26 @@ path = []
 # Construct directed graph 
 def construct_digraph(dir_edges_list, nodes_df):
     global G # define G as global so it is also defined outside of the function
-
-    G = nx.from_pandas_edgelist(dir_edges_list, source='u', target='v', edge_attr=True, create_using=nx.DiGraph(), edge_key='key')
-
-    # Add attributes for nodes
-    nodes_attr = nodes_df.set_index('osmid').to_dict(orient = 'index')
-    # then add nodes attributes in the Graph 
+    # Reproject nodes and edges to match leaflet epsg 3857
+    edges_epsg3857 = ox.projection.project_gdf(dir_edges_list, to_crs="epsg:3857")
+    nodes_epsg3857 = ox.projection.project_gdf(nodes_df, to_crs="epsg:3857")
+    
+    # Construct directed graph using networkx
+    G = nx.from_pandas_edgelist(edges_epsg3857, source='u', target='v', edge_attr=True, create_using=nx.DiGraph(), edge_key='key')
+    # Define attributes for nodes in a df
+    nodes_attr = nodes_epsg3857.set_index('osmid').to_dict(orient = 'index')
+    # Set nodes attributes in the Graph 
     nx.set_node_attributes(G, nodes_attr)
 
+    if ox.projection.is_projected("epsg:3857"):
+        print("The graph is already projected")
+        G = nx.DiGraph(G, crs='epsg:3857') # make sure crs params is defined
+        print(G.graph["crs"])
 
+    else:
+        G = ox.project_graph(G, to_crs="epsg:3857")
+        print("The graph was not projected, so it was projected in epsg:3857")
+ 
     return G
 
 # Find shortest path between two nodes using modified dijstra algorithm that includes intersection weight. There are 3 different functions (credit to Andrés Segura-Tinoco) 
@@ -180,15 +191,16 @@ def index():
         # Fixed nodes osmid to run find shortest path algorithm
         start = 266194853
         target = 563683908
+        orig_node_id, dist_to_orig = ox.distance.nearest_nodes(G, X=orig_lat, Y=orig_lon, return_dist=True)
+        print("Origin node-id: ", orig_node_id, "and distance:", dist_to_orig, "meters.")
         # Find the shortest path btw two nodes
         # path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
         # print(path)
         # Send it to js
         return {
-            "response": "it works"
+            "osmid_start" : orig_node_id
         }
-        # orig_node_id, dist_to_orig = ox.distance.nearest_nodes(G, X=orig_x, Y=orig_y, return_dist=True)
-        # print("Origin node-id: ", orig_node_id, "and distance:", dist_to_orig, "meters.")
+
 
     # To redirect to url with start and target values 
     start = 266194853

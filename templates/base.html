@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@3.7.0/dist/geosearch.css"/>
 
     <!-- Link to css stylesheet-->
-    <link rel="stylesheet" href="{{url_for('static', filename='style.css')}}"></link>
+    <link rel="stylesheet" href="{{url_for('static', filename='style.css')}}"/>
 </head>
 <!-- Navigation bar and links to different pages of the web application -->
 <body>
@@ -36,11 +36,6 @@
         <!-- Create different buttons -->
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav">
-{#                 <!-- dummy page just for testing -->
-                <li class="nav-item">
-                  <a class="nav-link" href="{{ url_for('comments') }}">Comments</a>
-                </li> #}
-                <!-- About page that gives more information about the work -->
                 <li class="nav-item">
                   <a class="nav-link" href="{{ url_for('about') }}">About</a>
                 </li>
@@ -52,11 +47,14 @@
         {% block content %} {% endblock %}
     </div>
 
-    <div id="footer">
-        Développé par Romain Götz
-        <a href="https://github.com/romgotz/application_routing"><i class="bi-github"></i>Code source </a>
-        <a href="{{ url_for('static', filename='about.html') }}">À propos</a>
-        <br> </>    
+    <div id="footer" class="copyright">
+        2022 © Romain Götz
+        <a href="https://github.com/romgotz/application_routing"><i class="bi-github"></i> Code source </a>
+        <a href="{{ url_for('static', filename='about.html') }}"> À propos </a>
+        <br>
+        <p>Source des données: Ville de Lausanne 2022 ; OSM ; Swisstopo <br>
+        <br>
+  
     </div>
     <!-- Link to jquery -->
     <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js' integrity='sha512-aVKKRRi/Q/YV+4mjoKBsE4x3H+BkegoM/em46NNlCqNTmUYADjBbeNefNxYV7giUp0VxICtqdrbqU7iVaeZNXA==' crossorigin='anonymous'></script>
