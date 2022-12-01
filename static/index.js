@@ -45,9 +45,6 @@ OpenStreetMap_CH.addTo(map)
 L.control.layers(baseLayers).addTo(map)
 
 // 3. Interactivity about gelocalisation 
-// Define marker variable
-var marker 
-marker_exist = false
 
 // 3.1 Get actual localisation by click on a button
 // Declare lat/lon as false, need to have 4 values before data is sent to flask 
@@ -70,13 +67,9 @@ L.DomEvent.on(document.getElementById('btnGetLocDest'), 'click', function(){
 
 // Display marker at localisation 
 function onLocationFound(e) {
-  if (marker_exist) {
-    map.removeLayer(marker)
-  };
   // Add marker at click button and get lat/lng
   if (button_id==='btnGetLocStart') {
     marker_dep = L.marker(e.latlng, {icon:icone_depart}, {draggable: true}).addTo(map);
-    marker_dep_exist = true;
     lat_dep = e.latlng.lat;
     lon_dep = e.latlng.lng;
 
