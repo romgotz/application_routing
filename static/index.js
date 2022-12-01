@@ -95,8 +95,8 @@ function onLocationFound(e) {
       if(response.ok) {
           response.json()
           .then(function(response) {
-              console.log(response);
-              console.log("The sending of the data from python file works")
+              console.log(response.crs);
+              console.log("The sending of the data from python file works");
               L.geoJSON(response).addTo(map);
           });
       }

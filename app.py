@@ -14,6 +14,8 @@ import networkx as nx
 import math
 import timeit
 from pyproj import Proj
+from shapely.geometry import Point, MultiPoint
+from shapely.ops import nearest_points
 
 app = Flask(__name__)
 app.debug = True
@@ -26,12 +28,17 @@ dir_edges_list = gpd.read_file(r'static/data/edgelist_network.shp', encoding='ut
 nodes = gpd.read_file(r'static/data/osm_nodes_epsg32632.shp', encoding='utf-8')
 # Intersection cost file
 cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='utf-8', sep=';')
+
+# Change crs of edges and nodes to match with leaflet
+dir_edges_list_epsg4326 = dir_edges_list.to_crs(epsg=4326)
+nodes_epsg4326 = nodes.to_crs(epsg=4326)
+
 # Change some columns types : somid for nodes and edges are often stored as float values, so change them into integers
-dir_edges_list['u'] = dir_edges_list['u'].round()
-dir_edges_list['v'] = dir_edges_list['v'].round()
+dir_edges_list_epsg4326['u'] = dir_edges_list_epsg4326['u'].round()
+dir_edges_list_epsg4326['v'] = dir_edges_list_epsg4326['v'].round()
 # Then change the data types of the columns in integer64
 cols = ['u', 'v']
-dir_edges_list[cols] = dir_edges_list[cols].applymap(np.int64)
+dir_edges_list_epsg4326[cols] = dir_edges_list_epsg4326[cols].applymap(np.int64)
 # Same for cost intersection
 cost_intersection['id_in'].fillna(0, inplace=True) # Fill nan with 0, otherwise error raised
 cost_intersection['id_in'] = cost_intersection['id_in'].round()
@@ -47,31 +54,32 @@ nodes['osmid']  = nodes['osmid'].round()
 nodes[['osmid']] = nodes[['osmid']].applymap(np.int64)
 # Remove some columns
 nodes.drop(columns=['field_1', 'Unnamed_ 0'], inplace=True)
+# Create multipoint from nodes to find nearest nodes from defined orig/dest in leaflet
+
+
 
 path = []
 # Python functions necessary for routing
 # Construct directed graph 
 def construct_digraph(dir_edges_list, nodes_df):
     global G # define G as global so it is also defined outside of the function
-    # Reproject nodes and edges to match leaflet epsg 3857
-    edges_epsg3857 = ox.projection.project_gdf(dir_edges_list, to_crs="epsg:3857")
-    nodes_epsg3857 = ox.projection.project_gdf(nodes_df, to_crs="epsg:3857")
     
     # Construct directed graph using networkx
-    G = nx.from_pandas_edgelist(edges_epsg3857, source='u', target='v', edge_attr=True, create_using=nx.DiGraph(), edge_key='key')
+    G = nx.from_pandas_edgelist(dir_edges_list, source='u', target='v', edge_attr=True, create_using=nx.DiGraph(), edge_key='key')
     # Define attributes for nodes in a df
-    nodes_attr = nodes_epsg3857.set_index('osmid').to_dict(orient = 'index')
+    nodes_attr = nodes_df.set_index('osmid').to_dict(orient = 'index')
     # Set nodes attributes in the Graph 
     nx.set_node_attributes(G, nodes_attr)
+    # Set crs attribute of the crs
+    crs_gdf = str(dir_edges_list.crs)
+    print(crs_gdf)
+    G = nx.DiGraph(G, crs=crs_gdf)
 
-    if ox.projection.is_projected("epsg:3857"):
-        print("The graph is already projected")
-        G = nx.DiGraph(G, crs='epsg:3857') # make sure crs params is defined
-        print(G.graph["crs"])
-
+    if ox.projection.is_projected("epsg:4326"):
+        print("Graph is projected") # make sure crs params is defined
     else:
-        G = ox.project_graph(G, to_crs="epsg:3857")
-        print("The graph was not projected, so it was projected in epsg:3857")
+        print("Graph is not projected")
+        # G = ox.project_graph(G, to_crs="epsg:4326")
  
     return G
 
@@ -175,8 +183,7 @@ def get_shortest_path(dwg, source, target, intersection_cost, verbose=False):
 @app.route('/', methods=["GET", "POST"])
 def index():
     # Construct the graph when pages is reached
-    construct_digraph(dir_edges_list, nodes)
-    print("The graph has been constructed")
+    construct_digraph(dir_edges_list_epsg4326, nodes_epsg4326)
     global path   
     # Receive lat/lon from geosearching
     if request.method == "POST":
@@ -188,8 +195,8 @@ def index():
         dest_lon= latlngData['lon_dest']
         dest_lat = latlngData['lat_dest']
 
-        # !!!! Need to add function to get the nearest node from the lon and latitude. It exists in OSMnx but it gives strange result, probably a problem of CRS. It alqys gives the same 
-        orig_node_id, dist_to_orig = ox.distance.nearest_nodes(G, X=orig_lat, Y=orig_lon, return_dist=True)
+        # !!!! Need to add function to get the nearest node from the lon and latitude. It exists in OSMnx but it gives strange result, probably a problem of CRS. It alqys gives the same
+        orig_node_id, dist_to_orig = ox.distance.nearest_nodes(G, X=orig_lon, Y=orig_lat, return_dist=True)
         print("Origin node-id: ", orig_node_id, "and distance:", dist_to_orig, "meters.")
         # Find the shortest path btw two nodes
         # path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
@@ -204,13 +211,13 @@ def index():
         # Specify the type of each column when creating the dataframe to avoid errors 
         params_to_keep = ['u', 'v','oneway', 'name', 'DWV_ALLE', 'MSP_ALLE', 'ASP_ALLE', 'grade', 'TC_DWV', 'TC_MSP', 'TC_ASP', 'Am_cycl', 'geometry']
         # edges_path = dir_edges_list[cols_to_keep]
-        edges_df = dir_edges_list[params_to_keep]
+        edges_df = dir_edges_list_epsg4326[params_to_keep]
         edges_df.drop(edges_df.index[:], inplace=True)
         print("edges_df length", len(edges_df))
         for i in range(0, len(nodes_path) - 1, 1):
             edge_u = nodes_path[i]
             edge_v = nodes_path[i+1]
-            edge = dir_edges_list.loc[( dir_edges_list['u']==edge_u ) & (dir_edges_list['v']==edge_v)]
+            edge = dir_edges_list.loc[( dir_edges_list_epsg4326['u']==edge_u ) & (dir_edges_list_epsg4326['v']==edge_v)]
             edge = edge[params_to_keep]
             edges_df = pd.concat([edges_df, edge])
 
