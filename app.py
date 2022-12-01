@@ -176,6 +176,7 @@ def get_shortest_path(dwg, source, target, intersection_cost, verbose=False):
 def index():
     # Construct the graph when pages is reached
     construct_digraph(dir_edges_list, nodes)
+    print("The graph has been constructed")
     global path   
     # Receive lat/lon from geosearching
     if request.method == "POST":
@@ -187,24 +188,49 @@ def index():
         dest_lon= latlngData['lon_dest']
         dest_lat = latlngData['lat_dest']
 
-        # !!!! Need to add function to get the nearest node from the lon and latitude. It exists in OWMnx but it gives strange result, probably a problem of CRS
-        # Fixed nodes osmid to run find shortest path algorithm
-        start = 266194853
-        target = 563683908
+        # !!!! Need to add function to get the nearest node from the lon and latitude. It exists in OSMnx but it gives strange result, probably a problem of CRS. It alqys gives the same 
         orig_node_id, dist_to_orig = ox.distance.nearest_nodes(G, X=orig_lat, Y=orig_lon, return_dist=True)
         print("Origin node-id: ", orig_node_id, "and distance:", dist_to_orig, "meters.")
         # Find the shortest path btw two nodes
         # path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
         # print(path)
         # Send it to js
-        return {
-            "osmid_start" : orig_node_id
-        }
+
+        # Fixed path to explore link with js
+        # With orig = 573250847 (Avenue Louis-Vulliemin) and dest = 20934855 Avenue de Sevelin 
+        path = {'path': [573250847, 414238563, 271298545, 266860949, 598462588, 266860951, 35296923, 253414467, 3788043897, 35296878, 561177254, 8168160545, 253414733, 7895322696, 561177082, 7895322694, 7895322693, 253402372, 7895322695, 3520685572, 1463796472, 280650, 767942317, 253402050, 253402053, 695205962, 253402054, 253413326, 5320029301, 3461418955, 8660575986, 8660575987, 1420431333, 334242852, 8050095192, 8050095193, 3111734118, 330630228, 3111734119, 253403391, 253267284, 5319971363, 253267286, 5319971358, 5319971360, 5319971362, 1577380107, 3578319815, 253421603, 565076120, 4553078980, 9140143640, 9751075316, 4553078971, 289638634, 698790746, 564315114, 20934855], 'weight': 7238.580999999999}
+        nodes_path = path['path']
+        # Define a df that will receive the edges and necessary data 
+        # Specify the type of each column when creating the dataframe to avoid errors 
+        params_to_keep = ['u', 'v','oneway', 'name', 'DWV_ALLE', 'MSP_ALLE', 'ASP_ALLE', 'grade', 'TC_DWV', 'TC_MSP', 'TC_ASP', 'Am_cycl', 'geometry']
+        # edges_path = dir_edges_list[cols_to_keep]
+        edges_df = dir_edges_list[params_to_keep]
+        edges_df.drop(edges_df.index[:], inplace=True)
+        print("edges_df length", len(edges_df))
+        for i in range(0, len(nodes_path) - 1, 1):
+            edge_u = nodes_path[i]
+            edge_v = nodes_path[i+1]
+            edge = dir_edges_list.loc[( dir_edges_list['u']==edge_u ) & (dir_edges_list['v']==edge_v)]
+            edge = edge[params_to_keep]
+            edges_df = pd.concat([edges_df, edge])
+
+        edges_df = edges_df.sort_values(by=['TC_DWV'])
+        # There still are duplicated edges, so remove them by keeping the one with the lowest TC
+        edges_df.drop_duplicates(subset=['u', 'v'], inplace=True, ignore_index=True)
+        # Have to tranform it into json 
+        edges_geojson = edges_df.to_json()
+
+        return edges_geojson
+        
 
 
-    # To redirect to url with start and target values 
-    start = 266194853
-    target = 563683908
+    # print("The shortest path algorithm is running")
+    # start_time = time.time()
+    # path = get_shortest_path(G,orig_node_id, dest_node_id, cost_intersection, verbose=False)
+    # With orig = 573250847 (Avenue Louis-Vulliemin) and dest = 20934855 Avenue de Sevelin the result is
+    # {'path': [573250847, 414238563, 271298545, 266860949, 598462588, 266860951, 35296923, 253414467, 3788043897, 35296878, 561177254, 8168160545, 253414733, 7895322696, 561177082, 7895322694, 7895322693, 253402372, 7895322695, 3520685572, 1463796472, 280650, 767942317, 253402050, 253402053, 695205962, 253402054, 253413326, 5320029301, 3461418955, 8660575986, 8660575987, 1420431333, 334242852, 8050095192, 8050095193, 3111734118, 330630228, 3111734119, 253403391, 253267284, 5319971363, 253267286, 5319971358, 5319971360, 5319971362, 1577380107, 3578319815, 253421603, 565076120, 4553078980, 9140143640, 9751075316, 4553078971, 289638634, 698790746, 564315114, 20934855], 'weight': 7238.580999999999}
+    # It takes around 67 seconds..
+    # print("The shortest path was found.  It took [seconds]", (time.time() - start_time) , "The path is \n", path)
     start  = request.args.get('start', "")
     target  = request.args.get('target', "")
     if start and target:
