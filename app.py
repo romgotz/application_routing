@@ -13,7 +13,7 @@ import osmnx as ox
 import networkx as nx
 import math
 import timeit
-from pyproj import Proj
+from pyproj import Proj, transform
 from shapely.geometry import Point, MultiPoint
 from shapely.ops import nearest_points
 
@@ -32,6 +32,7 @@ cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='
 # Change crs of edges and nodes to match with leaflet
 dir_edges_list_epsg4326 = dir_edges_list.to_crs(epsg=4326)
 nodes_epsg4326 = nodes.to_crs(epsg=4326)
+
 # Epsg 3857 
 dir_edges_list_epsg3857 = dir_edges_list.to_crs(epsg=3857)
 nodes_epsg3857 = nodes.to_crs(epsg=3857)
@@ -191,15 +192,20 @@ def index():
     if request.method == "POST":
         # Get the lat/lon of start and destination places
         latlngData = request.get_json()
-        print(latlngData)
+        print("Before reprojecting with pyproj", latlngData)
+        outProj = Proj('epsg:3857')
+        inProj = Proj('epsg:4326')
         orig_lon= latlngData['lon_dep']
         orig_lat = latlngData['lat_dep']
         dest_lon= latlngData['lon_dest']
         dest_lat = latlngData['lat_dest']
+        orig_lon, orig_lat = transform(inProj,outProj,orig_lon,orig_lat)
+        dest_lon, dest_lat  = transform(inProj,outProj,dest_lon, dest_lat)
+        print("After projecting into epsg:3857. Orig_lon : %s ; Orig_lat: %s ; Dest_lon : %s; Dest_lat: %s" %(orig_lon, orig_lat, dest_lon, dest_lat)) 
 
         # !!!! Need to add function to get the nearest node from the lon and latitude. It exists in OSMnx but it gives strange result, probably a problem of CRS. It alqys gives the same
-        orig_node_id, dist_to_orig = ox.distance.nearest_nodes(G, X=orig_lon, Y=orig_lat, return_dist=True)
-        print("Origin node-id: ", orig_node_id, "and distance:", dist_to_orig, "meters.")
+        orig_node_id = ox.distance.nearest_nodes(G, X=orig_lon, Y=orig_lat, return_dist=True)
+        print("Origin node-id: ", orig_node_id)
         # Find the shortest path btw two nodes
         # path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
         # print(path)
@@ -213,12 +219,12 @@ def index():
         # Specify the type of each column when creating the dataframe to avoid errors 
         params_to_keep = ['u', 'v','oneway', 'name', 'DWV_ALLE', 'MSP_ALLE', 'ASP_ALLE', 'grade', 'TC_DWV', 'TC_MSP', 'TC_ASP', 'Am_cycl', 'geometry']
         # edges_path = dir_edges_list[cols_to_keep]
-        edges_df = dir_edges_list_epsg3857[params_to_keep]
+        edges_df = dir_edges_list_epsg4326[params_to_keep]
         edges_df.drop(edges_df.index[:], inplace=True)
         for i in range(0, len(nodes_path) - 1, 1):
             edge_u = nodes_path[i]
             edge_v = nodes_path[i+1]
-            edge = dir_edges_list.loc[( dir_edges_list_epsg3857['u']==edge_u ) & (dir_edges_list_epsg3857['v']==edge_v)]
+            edge = dir_edges_list_epsg4326.loc[( dir_edges_list_epsg4326['u']==edge_u ) & (dir_edges_list_epsg4326['v']==edge_v)]
             edge = edge[params_to_keep]
             edges_df = pd.concat([edges_df, edge])
 

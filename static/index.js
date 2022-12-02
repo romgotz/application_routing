@@ -1,8 +1,11 @@
 // Define variables that will be used in script
-const proj = L.CRS.EPSG3857;
+// const proj = L.CRS.EPSG3857;
+const proj_4326 = L.CRS.EPSG4326
+const proj_3857 = L.CRS.EPSG3857
 
-// Degrees to metres
-proj.project(new L.LatLng(51,-2))
+/* console.log(proj4.defs('EPSG:3857'))
+proj4.defs('EPSG:3857');
+ */
 // 1. Define icons for start/destination markers
 var icone_depart = L.icon({
     iconUrl: 'static/img/marker_dep.svg',
@@ -18,8 +21,8 @@ var icone_dest = L.icon({
     });
 
 
-// 2. Initialize leaflet map and center view on Lausanne
-var map = L.map('map').setView([46.5, 6.6], 13);
+// 2. Initialize leaflet map and center view on Lausanne 
+var map = L.map('map').setView([46.5196535, 6.6322734], 13); 
 
 // 2.1 Add different layers 
 // OSM
@@ -75,17 +78,13 @@ function onLocationFound(e) {
   // Add marker at click button and get lat/lng
   if (button_id==='btnGetLocStart') {
     marker_dep = L.marker(e.latlng, {icon:icone_depart}, {draggable: true}).addTo(map);
-    latlng_proj  = proj.project(new L.LatLng(e.latlng.lat, e.latlng.lng));
-    lat_dep = latlng_proj.x;
-    lon_dep = latlng_proj.y;
+    lat_dep = e.latlnglng.lat;
+    lon_dep = e.latlnglng.lng;
 
-    console.log(latlng_proj)
   } else if (button_id==='btnGetLocDest') { // add marker for destination
     marker_dest = L.marker(e.latlng, {icon:icone_dest}, {draggable: true}).addTo(map);
-    marker_dest_exist = true;
-    latlng_proj  = proj.project(new L.LatLng(e.latlng.lat, e.latlng.lng));
-    lat_dest = latlng_proj.x;
-    lon_dest = latlng_proj.y;
+    lat_dest = e.latlnglng.lat;
+    lon_dest = e.latlnglng.lng;
   } ; // end else
   // If 4 lat/lon exists, then send it to python using fetch
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
@@ -105,10 +104,8 @@ function onLocationFound(e) {
       if(response.ok) {
           response.json()
           .then(function(response) {
-              console.log(response.crs);
               console.log("The sending of the data from python file works");
-              L.geoJSON(response).addTo(map);
-          });
+            });
       }
       else {
           throw Error('Something went wrong');
@@ -128,23 +125,11 @@ function onLocationFound(e) {
 map.on('locationfound', onLocationFound);
 
 // 2nd possiblity : click on the map : it creates a marker
-//newMarkerGroup = new L.LayerGroup();
-//map.on('click', addMarker);
-// Have to add difference btw 1st click = depart and 2nd click = destination
-function onEachFeature(feature, layer) {
-  // does this feature have a property named popupContent?
-  for ( let i = 0; i < feature.geometry.coordinates.length; i++) {
-  lat = feature.geometry.coordinates[0][0]
-  console.log(lat)
-  lon = feature.geometry.coordinates[0][1]
-  console.log("lat", lat, "lon", lon)
-  latlng_proj  = proj.unproject(new L.LatLng(lat, lon));
-  console.log("lat_lng proj:", latlng_proj)
-  }
-}
 
+// Have to add difference btw 1st click = depart and 2nd click = destination
 
 var click = 0
+
 function onMapClick(e) {
   if (click >= 2) {
     alert("Vous pouvez seulement définir un point de départ et un point de destination. Vous pouvez soit appuyer sur le bouton reset ou déplacer les marqueurs existants")
@@ -156,17 +141,15 @@ function onMapClick(e) {
     // Add marker to it
     marker_dest = L.marker(e.latlng, {icon:icone_dest}, {draggable: true}).addTo(map);
     // Get lat/lon coordinates
-    latlng_proj  = proj.project(new L.LatLng(e.latlng.lat, e.latlng.lng));
-    lat_dest = latlng_proj.x;
-    lon_dest = latlng_proj.y;
+    lat_dest = e.latlng.lat
+    lon_dest = e.latlng.lng
   } else {
     console.log("This click is to determine the start")
     // Add marker at the coordinates
     marker_dest = L.marker(e.latlng, {icon:icone_depart}, {draggable: true}).addTo(map);
     // Get lat/lng and project them in epsg 3857
-    latlng_proj  = proj.project(new L.LatLng(e.latlng.lat, e.latlng.lng));
-    lat_dep = latlng_proj.x;
-    lon_dep = latlng_proj.y;
+    lat_dep = e.latlng.lat;
+    lon_dep = e.latlng.lng;
   }; // end else statement  
   // If all lon/lat exist, send them to python
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
@@ -188,21 +171,10 @@ function onMapClick(e) {
         response.json()
         .then(function(response) {
           console.log("The sending of the data from python file works")
-          console.log(response)
-          L.geoJSON(response, {
-            onEachFeature: onEachFeature
-          }).addTo(map);
-          console.log(response.features[0].geometry.coordinates[0])
-          L.GeoJSON.coordsToLatLngs(response.features[0].geometry.coordinates[0]);
-          L.geoJSON(geoJsonData, {
-          coordsToLatLng: function (coords) {
-                return new proj.unproject(L.LatLng(coords[0], coords[1]));
-            }
-          });
- 
+          var myLayer = L.geoJson(response).addTo(map)
+        }) // End of then 
+      } // end if
 
-        }); // end of then 
-    }
     else {
         throw Error('Something went wrong');
     }
@@ -258,11 +230,6 @@ form_depart.addEventListener('submit', async (event) => {
   lat_dep = results_dep[0]['y']; // take the first result (if many results)
   // Put a marker on the adresse
   L.marker([lat_dep,lon_dep], {icon: icone_depart}).addTo(map);
-  // Get lat/lng and project them in epsg 3857
-  latlng_proj  = proj.project(new L.LatLng(lat_dep,lon_dep));
-  lat_dep = latlng_proj.x;
-  lon_dep = latlng_proj.y;
-  console.log(lon_dep, lat_dep)
 
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
     // Add fetch to send it to flask app
@@ -282,9 +249,8 @@ form_depart.addEventListener('submit', async (event) => {
       if(response.ok) {
           response.json()
           .then(function(response) {
-              console.log(response);
               console.log("The sending of the data from python file works")
-              L.geoJSON(response).addTo(map);
+              var myLayer = L.geoJson(response).addTo(map);
           });
       }
       else {
@@ -315,9 +281,6 @@ form_dest.addEventListener('submit', async (event) => {
   lat_dest = results_dest[0]['y']; // take the first result (if many results)
   // Add marker to the map
   L.marker([lat_dest,lon_dest], {icon: icone_dest}).addTo(map);
-  latlng_proj  = proj.project(new L.LatLng(lat_dest,lon_dest));
-  lat_dest = latlng_proj.x;
-  lon_dest = latlng_proj.y;
   // Need to send those variables to python app.py
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
     // Add fetch to send it to flask app
@@ -337,10 +300,8 @@ form_dest.addEventListener('submit', async (event) => {
       if(response.ok) {
           response.json()
           .then(function(response) {
-              console.log(response);
               console.log("The sending of the data from python file works")
-              console.log(response.features[0])
-              L.geoJSON(response[0]).addTo(map);
+              var myLayer = L.geoJson(response).addTo(map)
           });
       }
       else {
@@ -353,3 +314,4 @@ form_dest.addEventListener('submit', async (event) => {
   
     }; // 
 });
+
