@@ -240,13 +240,14 @@ def index():
         target = get_nearest_node(kdTree=kd_tree, x=dest_lat, y=dest_lon)
 
         # Find the shortest path btw the two nodes
-        print("Determining the shortest path. It might take a moment")
-        start_time = time.time()
-        path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
-        print("The shortest path was found.  It took [seconds]", (time.time() - start_time) , "The path is \n", path)
-
+        # print("Determining the shortest path. It might take a moment")
+        # start_time = time.time()
+        # path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
+        # print("The shortest path was found.  It took [seconds]", (time.time() - start_time) , "The path is \n", path)
+        # Fixed path to go quicker
+        path = [266860942, 414238563, 573250847, 418016472, 602689559, 267510221, 602689574, 573250900, 8790226568]
         # Determine the edges corresponding to the nodes in the path
-        nodes_path = path['path']
+        nodes_path = path # ['path']
         # Define a df that will receive the edges and necessary data 
         params_to_keep = ['u', 'v','oneway', 'name', 'DWV_ALLE', 'MSP_ALLE', 'ASP_ALLE', 'grade', 'TC_DWV', 'TC_MSP', 'TC_ASP', 'Am_cycl', 'geometry']
         # Take the edges from df with crs = epsg:4326 to match leaflet 

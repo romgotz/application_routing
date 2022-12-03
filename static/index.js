@@ -20,9 +20,66 @@ var icone_dest = L.icon({
     popupAnchor: [1, -34]
     });
 
+var geojson;
+
+// Determining functions to style trajet according to cycling quality
+// Get color function for cycling quality 
+function getColor(d) {
+      return d > 1.3 ? '#d7191c' :
+             d > 1.1   ? '#fdae61' :
+             d > 0.95   ? '#ffffbf' :
+             d > 0.75   ? '#abd9e9' :
+                        '#2c7bb6';
+  }
+// https://colorbrewer2.org/?type=diverging&scheme=RdYlBu&n=5
+
+function style(feature) {
+  return {
+      color: getColor(feature.properties.TC_DWV),
+      fillOpacity: 0.9
+  };
+}
+// Interaction with polyline : when mousover tooltip 
+function highlightFeature(e) {
+  var layer = e.target;
+  layer.setStyle({
+      weight: 5,
+  });
+  info.update(layer.feature.properties);
+
+}
+
+function resetHighlight(e) {
+  geojson.resetStyle(e.target);
+  info.update();
+}
+
+function onEachFeature(feature, layer) {
+  layer.on({
+      mouseover: highlightFeature,
+      mouseout: resetHighlight,
+  });
+}
+
+var info = L.control();
+
+info.onAdd = function (map) {
+    this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+    this.update();
+    return this._div;
+};
+
+// method that we will use to update the control based on feature properties passed
+info.update = function (props) {
+    this._div.innerHTML = '<h4> Informations </h4>' +  (props ?
+        '<b>' + props.name + '</b><br />' + props.TC_DWV + ' Qualité cyclable '
+        : 'Hover sur le trajet proposé');
+};
+
 
 // 2. Initialize leaflet map and center view on Lausanne 
 var map = L.map('map').setView([46.5196535, 6.6322734], 13); 
+info.addTo(map);
 
 // 2.1 Add different layers 
 // OSM
@@ -171,7 +228,13 @@ function onMapClick(e) {
         response.json()
         .then(function(response) {
           console.log("The sending of the data from python file works")
-          var myLayer = L.geoJson(response).addTo(map)
+          console.log(response)
+          console.log(response.features[0].properties.TC_DWV)
+          // data = TC_DWV
+          geojson = L.geoJson(response, {
+            style: style,
+            onEachFeature: onEachFeature
+        }).addTo(map)
         }) // End of then 
       } // end if
 
