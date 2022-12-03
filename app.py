@@ -11,6 +11,7 @@ import numpy as np
 import geopandas as gpd
 import osmnx as ox
 import networkx as nx
+from scipy import spatial 
 import math
 import timeit
 from pyproj import Proj, transform
@@ -21,29 +22,39 @@ app = Flask(__name__)
 app.debug = True
 
 
-# Download file
-# Edges file
+# 1. Download local data and prepare it 
+# Edges file to build the graph 
 dir_edges_list = gpd.read_file(r'static/data/edgelist_network.shp', encoding='utf-8')
-# Nodes file
+# Nodes file to build the graph 
 nodes = gpd.read_file(r'static/data/osm_nodes_epsg32632.shp', encoding='utf-8')
-# Intersection cost file
+# Intersection cost file for the shortest path algorithm
 cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='utf-8', sep=';')
 
-# Change crs of edges and nodes to match with leaflet
+# Change some columns types. u/v columns are stored as float values, but need to be integers 
+# Round float values 
+dir_edges_list['u'] = dir_edges_list['u'].round()
+dir_edges_list['v'] = dir_edges_list['v'].round()
+# Change  data types to integer64
+cols = ['u', 'v']
+dir_edges_list[cols] = dir_edges_list[cols].applymap(np.int64)
+
+# Do the same with nodes osmid 
+# same for nodes osmid
+nodes['osmid']  = nodes['osmid'].round()
+nodes[['osmid']] = nodes[['osmid']].applymap(np.int64)
+# Remove some unecessary columns
+nodes.drop(columns=['field_1', 'Unnamed_ 0'], inplace=True)
+
+# Create nodes and edges df with different crs
+# epsg:4326 to match leaflet crs
 dir_edges_list_epsg4326 = dir_edges_list.to_crs(epsg=4326)
 nodes_epsg4326 = nodes.to_crs(epsg=4326)
 
-# Epsg 3857 
+# Epsg 3857 to have meters unit 
 dir_edges_list_epsg3857 = dir_edges_list.to_crs(epsg=3857)
 nodes_epsg3857 = nodes.to_crs(epsg=3857)
 
-# Change some columns types : somid for nodes and edges are often stored as float values, so change them into integers
-dir_edges_list_epsg3857['u'] = dir_edges_list_epsg3857['u'].round()
-dir_edges_list_epsg3857['v'] = dir_edges_list_epsg3857['v'].round()
-# Then change the data types of the columns in integer64
-cols = ['u', 'v']
-dir_edges_list_epsg3857[cols] = dir_edges_list_epsg3857[cols].applymap(np.int64)
-# Same for cost intersection
+# Change column for intersection df 
 cost_intersection['id_in'].fillna(0, inplace=True) # Fill nan with 0, otherwise error raised
 cost_intersection['id_in'] = cost_intersection['id_in'].round()
 cost_intersection[['id_in']] = cost_intersection[['id_in']].applymap(np.int64)
@@ -53,14 +64,22 @@ cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'
 cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'] = cost_intersection['cost_mini_roundabout']
 cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'] = 0
 
-# same for nodes osmid
-nodes['osmid']  = nodes['osmid'].round()
-nodes[['osmid']] = nodes[['osmid']].applymap(np.int64)
-# Remove some columns
-nodes.drop(columns=['field_1', 'Unnamed_ 0'], inplace=True)
-# Create multipoint from nodes to find nearest nodes from defined orig/dest in leaflet
+# Prepare KDTree from nodes_epsg3857 to determine the nearest node
+# Take coordinates in geometry column and assign it to x,y columns
+for i in range(0, len(nodes_epsg3857)):
+    point = nodes_epsg3857['geometry'][i]
+    x = point.coords[0][0]
+    y = point.coords[0][1]
+    nodes_epsg3857.loc[nodes_epsg3857.index == i, 'x'] = x
+    nodes_epsg3857.loc[nodes_epsg3857.index == i, 'y'] = y
+# Keep only x,y coordinates
+nodes_epsg3857_xy = nodes_epsg3857[['x', 'y']]
+print("The x,y nodes in epsg3857 looks like\n", nodes_epsg3857_xy.head(10))
+print("The types are\n", nodes_epsg3857_xy.dtypes)
+# Create the kd_tree 
+kd_tree = spatial.KDTree(nodes_epsg3857_xy)
 
-
+print("The kd tree has been built. It looks like\n", kd_tree)
 
 path = []
 # Python functions necessary for routing
@@ -76,15 +95,30 @@ def construct_digraph(dir_edges_list, nodes_df):
     nx.set_node_attributes(G, nodes_attr)
     # Set crs attribute of the crs
     crs_gdf = str(dir_edges_list.crs)
-    print(crs_gdf)
+    print("crs gdf in construct graph function :", crs_gdf)
     G = nx.DiGraph(G, crs=crs_gdf)
 
-    if ox.projection.is_projected("epsg:3857"):
+    if ox.projection.is_projected("epsg:4326"):
         print("Graph is projected") # make sure crs params is defined
     else:
         print("Graph is not projected")
  
     return G
+
+# Get nearest node in graph from the coordinates send from leaflet
+def get_nearest_node(kdTree, x, y):
+    # Define x,y coordinates as np array for ckdtree
+    X = np.array([x])
+    Y = np.array([y])
+    # Determine position and distance
+    dist, pos = kd_tree.query(np.array([X, Y]).T, k=1)
+    # Get value of the position (it is in a np.array)
+    index = pos[0]
+    closest_node = nodes_epsg3857.loc[nodes_epsg3857.index==index]
+    closest_node_osmid = closest_node['osmid'].item()
+    print("The closest node osmid is %s .And the dist is %s" %(closest_node_osmid, dist))
+
+    return closest_node_osmid
 
 # Find shortest path between two nodes using modified dijstra algorithm that includes intersection weight. There are 3 different functions (credit to Andrés Segura-Tinoco) 
 # Returns the node with a minimum own distance
@@ -179,8 +213,6 @@ def get_shortest_path(dwg, source, target, intersection_cost, verbose=False):
     return { 'path': path, 'weight': weight }
 
 
-# 266194853
-# 563683908
 # Different app routes
 # Index definition, main page of the application
 @app.route('/', methods=["GET", "POST"])
@@ -193,32 +225,31 @@ def index():
         # Get the lat/lon of start and destination places
         latlngData = request.get_json()
         print("Before reprojecting with pyproj", latlngData)
+        # Project the lat/lng in epsg3857 to have meters
         outProj = Proj('epsg:3857')
         inProj = Proj('epsg:4326')
-        orig_lon= latlngData['lon_dep']
         orig_lat = latlngData['lat_dep']
-        dest_lon= latlngData['lon_dest']
+        orig_lon= latlngData['lon_dep']
         dest_lat = latlngData['lat_dest']
-        orig_lon, orig_lat = transform(inProj,outProj,orig_lon,orig_lat)
-        dest_lon, dest_lat  = transform(inProj,outProj,dest_lon, dest_lat)
-        print("After projecting into epsg:3857. Orig_lon : %s ; Orig_lat: %s ; Dest_lon : %s; Dest_lat: %s" %(orig_lon, orig_lat, dest_lon, dest_lat)) 
+        dest_lon= latlngData['lon_dest']
+        orig_lat, orig_lon = transform(inProj,outProj,orig_lat,orig_lon)
+        dest_lat, dest_lon = transform(inProj,outProj,dest_lat, dest_lon)
+        print("After projecting into epsg:3857. Orig_lat: %s ; Orig_lon : %s ;  Dest_lat: %s; Dest_lon : %s" %(orig_lat, orig_lon, dest_lat, dest_lon))
+        print("Determining the nearest node")
+        start = get_nearest_node(kdTree=kd_tree, x=orig_lat, y=orig_lon)
+        target = get_nearest_node(kdTree=kd_tree, x=dest_lat, y=dest_lon)
 
-        # !!!! Need to add function to get the nearest node from the lon and latitude. It exists in OSMnx but it gives strange result, probably a problem of CRS. It alqys gives the same
-        orig_node_id = ox.distance.nearest_nodes(G, X=orig_lon, Y=orig_lat, return_dist=True)
-        print("Origin node-id: ", orig_node_id)
-        # Find the shortest path btw two nodes
-        # path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
-        # print(path)
-        # Send it to js
+        # Find the shortest path btw the two nodes
+        print("Determining the shortest path. It might take a moment")
+        start_time = time.time()
+        path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
+        print("The shortest path was found.  It took [seconds]", (time.time() - start_time) , "The path is \n", path)
 
-        # Fixed path to explore link with js
-        # With orig = 573250847 (Avenue Louis-Vulliemin) and dest = 20934855 Avenue de Sevelin 
-        path = {'path': [573250847, 414238563, 271298545, 266860949, 598462588, 266860951, 35296923, 253414467, 3788043897, 35296878, 561177254, 8168160545, 253414733, 7895322696, 561177082, 7895322694, 7895322693, 253402372, 7895322695, 3520685572, 1463796472, 280650, 767942317, 253402050, 253402053, 695205962, 253402054, 253413326, 5320029301, 3461418955, 8660575986, 8660575987, 1420431333, 334242852, 8050095192, 8050095193, 3111734118, 330630228, 3111734119, 253403391, 253267284, 5319971363, 253267286, 5319971358, 5319971360, 5319971362, 1577380107, 3578319815, 253421603, 565076120, 4553078980, 9140143640, 9751075316, 4553078971, 289638634, 698790746, 564315114, 20934855], 'weight': 7238.580999999999}
+        # Determine the edges corresponding to the nodes in the path
         nodes_path = path['path']
         # Define a df that will receive the edges and necessary data 
-        # Specify the type of each column when creating the dataframe to avoid errors 
         params_to_keep = ['u', 'v','oneway', 'name', 'DWV_ALLE', 'MSP_ALLE', 'ASP_ALLE', 'grade', 'TC_DWV', 'TC_MSP', 'TC_ASP', 'Am_cycl', 'geometry']
-        # edges_path = dir_edges_list[cols_to_keep]
+        # Take the edges from df with crs = epsg:4326 to match leaflet 
         edges_df = dir_edges_list_epsg4326[params_to_keep]
         edges_df.drop(edges_df.index[:], inplace=True)
         for i in range(0, len(nodes_path) - 1, 1):
@@ -235,16 +266,7 @@ def index():
         edges_geojson = edges_df.to_json()
 
         return edges_geojson
-        
 
-
-    # print("The shortest path algorithm is running")
-    # start_time = time.time()
-    # path = get_shortest_path(G,orig_node_id, dest_node_id, cost_intersection, verbose=False)
-    # With orig = 573250847 (Avenue Louis-Vulliemin) and dest = 20934855 Avenue de Sevelin the result is
-    # {'path': [573250847, 414238563, 271298545, 266860949, 598462588, 266860951, 35296923, 253414467, 3788043897, 35296878, 561177254, 8168160545, 253414733, 7895322696, 561177082, 7895322694, 7895322693, 253402372, 7895322695, 3520685572, 1463796472, 280650, 767942317, 253402050, 253402053, 695205962, 253402054, 253413326, 5320029301, 3461418955, 8660575986, 8660575987, 1420431333, 334242852, 8050095192, 8050095193, 3111734118, 330630228, 3111734119, 253403391, 253267284, 5319971363, 253267286, 5319971358, 5319971360, 5319971362, 1577380107, 3578319815, 253421603, 565076120, 4553078980, 9140143640, 9751075316, 4553078971, 289638634, 698790746, 564315114, 20934855], 'weight': 7238.580999999999}
-    # It takes around 67 seconds..
-    # print("The shortest path was found.  It took [seconds]", (time.time() - start_time) , "The path is \n", path)
     start  = request.args.get('start', "")
     target  = request.args.get('target', "")
     if start and target:
