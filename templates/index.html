@@ -13,16 +13,6 @@
         <!-- Explication about the web app -->
         <p id="explication"> Cette application permet de trouver un itinéraire à vélo le plus sûr et confortable possible. Définissez votre point de départ et destination, soit en cliquant sur la carte soit en cherchant l'adresse.</p>
 
-{#         <!-- Two buttons for dest and dep-->
-        <!-- Depart --> 
-        <form id="nodes" action="" method="get">
-        Depart osmid: <input type="text" name="start">
-        Arrive osmid: <input type="text" name="target">
-        <input type="submit" value="Calculer itinéraire">
-        </form> #}
-        <!-- printing the shortest path result -->
-        <p> The shortest path is {{ path }} </p>
-
         <!-- Add button to determine start and destination -->
         <!-- Start button -->
         <div class="input-group mb-3">
@@ -60,10 +50,34 @@
                 </button>
             </div>
         </div> <!-- End of destination button -->
-        <!-- Add a rest button -->
+
+        <!-- Add a reset button for adresses  -->
         <button id="resetBtn"  type="button" title="Remettre à zéro destination et départ">
-            Reset
+            Recommencer
         </button>
+
+        <!-- Checkboxes to personalize routing data-->
+        <div class="form-check form-switch">
+            <!-- VAE -->
+            <input class="form-check-input" type="checkbox" role="switch" id="VAE">
+            <label class="form-check-label" for="VAE">Vélo à Assitance Electrique </label>
+        </div>
+        <div class="form-check form-switch">
+            <!-- Intersections -->
+            <input class="form-check-input" type="checkbox" role="switch" id="intersections" checked>
+            <label class="form-check-label" for="intersections"> Intersections </label>
+        </div>
+        <div class="form-check form-switch">
+            <!-- Heure de pointe matin (7-8h) -->
+            <input class="form-check-input" type="checkbox" role="switch" id="matin" checked>
+            <label class="form-check-label" for="matin"> Heure de pointe matin 7-8h </label>
+        </div>
+        <div class="form-check form-switch">
+            <!-- Heure de pointe soir (17-18h) -->
+            <input class="form-check-input" type="checkbox" role="switch" id="soir" disabled>
+            <label class="form-check-label" for="soir"> Heure de pointe soir 17-18h </label>
+        </div>      
+
 
 
 
