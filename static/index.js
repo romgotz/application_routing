@@ -1,136 +1,160 @@
-// Define variables that will be used in script
-// const proj = L.CRS.EPSG3857;
-const proj_4326 = L.CRS.EPSG4326
-const proj_3857 = L.CRS.EPSG3857
+// 1. Define variables and constant used in global
 
-/* console.log(proj4.defs('EPSG:3857'))
-proj4.defs('EPSG:3857');
- */
-// 1. Define icons for start/destination markers
-var icone_depart = L.icon({
-    iconUrl: 'static/img/marker_dep.svg',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34]
-});
-var icone_dest = L.icon({
-    iconUrl: 'static/img/marker_dest.svg', 
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34]
-    });
-
+// Variables that receive lat/lon from leaflet sent to flask 
+// Declare them as false, so only when 4 variables habve values, they are sent to routing algo in app.py
+lat_dep= false;
+lat_dest = false;
+lon_dep = false;
+lon_dest = false;
+// Click variable to count click on leaflet map. To make sure we have 2 clicks that are start/destination 
+var click = 0; 
+// Variable to receive geojson layer containing path from algo routing (coming from app.py) 
 var geojson;
+// Define icons for start/destination markers with some parameters
+const icone_depart = L.icon({
+  iconUrl: 'static/img/marker_dep.svg',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34]
+});
+const icone_dest = L.icon({
+  iconUrl: 'static/img/marker_dest.svg', 
+    iconUrl: 'static/img/marker_dest.svg', 
+  iconUrl: 'static/img/marker_dest.svg', 
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34]
+  });
 
-// Determining functions to style trajet according to cycling quality
-// Get color function for cycling quality 
+// Different background layers accessible in leaflet 
+// OSM
+const OpenStreetMap_CH = L.tileLayer('https://tile.osm.ch/switzerland/{z}/{x}/{y}.png', {
+	maxZoom: 20,
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	bounds: [[45, 5], [48, 11]]
+});
+// OSM for cycling 
+const CyclOSM = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
+	maxZoom: 20,
+	attribution: '<a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases" title="CyclOSM - Open Bicycle render">CyclOSM</a> | Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+});
+// Satellite imagery
+const esriImagery = L.tileLayer(
+  'http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '&copy; <a href="http://www.esri.com">Esri</a>, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+});
+// Put them in an object for leaflet control layer 
+const baseLayers = {
+  'CyclOSM': CyclOSM,
+  'OSM CH': OpenStreetMap_CH,
+  'Satellite ESRI': esriImagery
+};
+
+// Variables for leaflet map
+var info = L.control(); // tooltip containing info 
+var map = L.map('map'); // contains leaflet map
+
+// Variables for the geosearching adresse toolbar
+// Setting geosearch control button
+var OpenStreetMapProvider = window.GeoSearch.OpenStreetMapProvider;
+// var GeoSearchControl = window.GeoSearch.GeoSearchControl;
+// OSM provider
+const OSMprovider = new OpenStreetMapProvider({
+  params: {
+    'accept-language': 'fr', // render results in French
+    countrycodes: 'ch', // limit search results to the Switzerland
+    autoClose: true,
+    autoComplete: true
+  },
+});
+// Selection of the text in the start toolbar in html  
+const form_depart = document.getElementById('geosearch_depart');
+const input_dep = form_depart.querySelector('input[type="text"]');
+// Selection of the text in the destination toolbar in html  
+const form_dest = document.getElementById('geosearch_dest');
+const input_dest = form_dest.querySelector('input[type="text"]');
+
+/* const searchControl = new GeoSearchControl({
+  provider: new OpenStreetMapProvider(),
+  style: 'bar',
+  //--------
+  // if autoComplete is false, need manually calling provider.search({ query: input.value })
+  autoComplete: true,         // optional: true|false  - default true
+  autoCompleteDelay: 250
+}) */
+
+// 2. Define functions about events from interactions  
+// Get color function for coloring of path in leaflet 
 function getColor(d) {
-      return d > 1.3 ? '#d7191c' :
-             d > 1.1   ? '#fdae61' :
-             d > 0.95   ? '#ffffbf' :
-             d > 0.75   ? '#abd9e9' :
-                        '#2c7bb6';
+  /* Return color according to the class. The color palette comes from colorbrewer
+  https://colorbrewer2.org/?type=diverging&scheme=RdYlBu&n=5 */
+  return  d > 1.3 ? '#d7191c' :
+          d > 1.1 ? '#fdae61' :
+          d > 0.95 ? '#ffffbf' :
+          d > 0.75 ? '#abd9e9' :
+          '#2c7bb6';
   }
-// https://colorbrewer2.org/?type=diverging&scheme=RdYlBu&n=5
-
+// Style function to call in L.geojson to line colored according to a 
 function style(feature) {
+  /*
+  Function called in L.geojson with parameters style:style ; colors the features in gejson according to their value  ;for now the value is fixed with TC_DWV = Cycling quality with taking into account trafic = DWV (mean trafic for monday-friday)
+  */
   return {
       color: getColor(feature.properties.TC_DWV),
       fillOpacity: 0.9
   };
 }
-// Interaction with polyline : when mousover tooltip 
+
 function highlightFeature(e) {
-  var layer = e.target;
+  /*
+  Interaction with mousover a layer. Here the layer is geojson layer containing lines constituting the path found by the shortest path algo
+  */
+  var layer = e.target; // select the layer 
   layer.setStyle({
       weight: 5,
   });
-  info.update(layer.feature.properties);
-
+  info.update(layer.feature.properties); // updating the info tooltip 
 }
 
 function resetHighlight(e) {
+  /*
+  Reset the info when mouse in not on the features of geojson layer
+  */
   geojson.resetStyle(e.target);
   info.update();
 }
 
 function onEachFeature(feature, layer) {
+  /*
+  function to call in L.geojson (onEachFeature: onEachFeature) to deal with the mouse events.
+  Mousover returns the highlight function while mouseout calls the reset info function
+  */
   layer.on({
       mouseover: highlightFeature,
       mouseout: resetHighlight,
   });
 }
 
-var info = L.control();
-
+// method that we will use to update the control based on feature properties passed
+info.update = function (props) {
+  /*
+  Get information to display in the info tooltip  
+  */ 
+  this._div.innerHTML = '<h4> Informations </h4>' +  (props ?
+      '<b>' + props.name + '</b><br />' + props.TC_DWV + ' Qualité cyclable '
+      : 'Hover sur le trajet proposé');
+};
 info.onAdd = function (map) {
-    this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+  /*
+  Create a div with a class "info" in the leaflet map that calls update info 
+  */ 
+    this._div = L.DomUtil.create('div', 'info');
     this.update();
     return this._div;
 };
 
-// method that we will use to update the control based on feature properties passed
-info.update = function (props) {
-    this._div.innerHTML = '<h4> Informations </h4>' +  (props ?
-        '<b>' + props.name + '</b><br />' + props.TC_DWV + ' Qualité cyclable '
-        : 'Hover sur le trajet proposé');
-};
-
-
-// 2. Initialize leaflet map and center view on Lausanne 
-var map = L.map('map').setView([46.5196535, 6.6322734], 13); 
-info.addTo(map);
-
-// 2.1 Add different layers 
-// OSM
-var OpenStreetMap_CH = L.tileLayer('https://tile.osm.ch/switzerland/{z}/{x}/{y}.png', {
-	maxZoom: 20,
-	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-	bounds: [[45, 5], [48, 11]]
-});
-// OSM for cycling 
-var CyclOSM = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
-	maxZoom: 20,
-	attribution: '<a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases" title="CyclOSM - Open Bicycle render">CyclOSM</a> | Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-});
-var esriImagery = L.tileLayer(
-  'http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: '&copy; <a href="http://www.esri.com">Esri</a>, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-});
-
-// Put all layers to choose
-var baseLayers = {
-  'CyclOSM': CyclOSM,
-  'OSM CH': OpenStreetMap_CH,
-  'Satellite ESRI': esriImagery
-};
-
-// Initialize with OSM
-OpenStreetMap_CH.addTo(map)
-L.control.layers(baseLayers).addTo(map)
-
-// 3. Interactivity about gelocalisation 
-
-// 3.1 Get actual localisation by click on a button
-// Declare lat/lon as false, need to have 4 values before data is sent to flask 
-lat_dep= false
-lat_dest = false
-lon_dep = false
-lon_dest = false
-
-// Deal with the event, either click on start or destination 
-// For start 
-L.DomEvent.on(document.getElementById('btnGetLocStart'), 'click', function(){
-  map.locate({setView: true, maxZoom: 16});
-  button_id = this.id;
-});
-// For destination
-L.DomEvent.on(document.getElementById('btnGetLocDest'), 'click', function(){
-  map.locate({setView: true, maxZoom: 16});
-  button_id = this.id;
-});
-
-// Display marker at localisation 
+// Functions about gelocalisation
+// Event for clicking on button to get localisation
 function onLocationFound(e) {
   // Add marker at click button and get lat/lng
   if (button_id==='btnGetLocStart') {
@@ -177,15 +201,6 @@ function onLocationFound(e) {
   } // End of if for fetch
 
 }; // end of location found
-
-// Add it to the map
-map.on('locationfound', onLocationFound);
-
-// 2nd possiblity : click on the map : it creates a marker
-
-// Have to add difference btw 1st click = depart and 2nd click = destination
-
-var click = 0
 
 function onMapClick(e) {
   if (click >= 2) {
@@ -250,37 +265,37 @@ function onMapClick(e) {
   
 }; // end of click function
 
-// Deal with the event on map
+// 3. Initialize the leaflet map 
+// Center on Lausanne
+map.setView([46.5196535, 6.6322734], 13); 
+// Put OSM as default background layer
+OpenStreetMap_CH.addTo(map)
+// Add possibility to change background layer
+L.control.layers(baseLayers).addTo(map);
+// Add the tooltip info 
+info.addTo(map);
+
+// 4. Interactivity about gelocalisation 
+
+// 4.1 Localisation by click on a button or clicks on map
+
+// Deal with the click on localisation button event 
+// For start 
+L.DomEvent.on(document.getElementById('btnGetLocStart'), 'click', function(){
+  map.locate({setView: true, maxZoom: 16});
+  button_id = this.id; // define button_id to know if clicked to determine start or destination
+});
+// For destination
+L.DomEvent.on(document.getElementById('btnGetLocDest'), 'click', function(){
+  map.locate({setView: true, maxZoom: 16});
+  button_id = this.id; // define button_id to know if clicked to determine start or destination
+});
+// Add it to the map
+map.on('locationfound', onLocationFound);
+// Deal with the click on map
 map.on('click', onMapClick);
 
-// 4.3 Geosearching adresse
-
-// Setting geosearch control button
-var OpenStreetMapProvider = window.GeoSearch.OpenStreetMapProvider;
-// var GeoSearchControl = window.GeoSearch.GeoSearchControl;
-
-// Define parameters for geosearching
-const OSMprovider = new OpenStreetMapProvider({
-  params: {
-    'accept-language': 'fr', // render results in French
-    countrycodes: 'ch', // limit search results to the Switzerland
-    autoClose: true,
-    autoComplete: true
-  },
-});
-
-/* const searchControl = new GeoSearchControl({
-  provider: new OpenStreetMapProvider(),
-  style: 'bar',
-  //--------
-  // if autoComplete is false, need manually calling provider.search({ query: input.value })
-  autoComplete: true,         // optional: true|false  - default true
-  autoCompleteDelay: 250
-}) */
-
-// For start
-const form_depart = document.getElementById('geosearch_depart')
-const input_dep = form_depart.querySelector('input[type="text"]');
+// 4.3 Geosearching adress toolbars 
 
 form_depart.addEventListener('submit', async (event) => {
   if (lat_dep && lon_dep) {
@@ -329,9 +344,6 @@ form_depart.addEventListener('submit', async (event) => {
 }); // End geosearching depart
 
 // For destination
-// Geosearching for destination
-const form_dest = document.getElementById('geosearch_dest');
-const input_dest = form_dest.querySelector('input[type="text"]');
 
 form_dest.addEventListener('submit', async (event) => {
   if (lat_dest && lon_dest) {
