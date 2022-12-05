@@ -219,14 +219,19 @@ def index():
 
     # Get the checkboxes value to determine which data to use 
     # vae = request.form.get("VAE")
-    intersections =  request.form.get("intersections")
-    MSP =  request.form.get("HP_matin")
-    ASP =  request.form.get("HP_soir")
+    intersections =  request.form.get("intersections", "true")
+    MSP =  request.form.get("HP_matin", "false")
+    ASP =  request.form.get("HP_soir", "false")
 
-    print("MSP value from checkbox: %s \n ASP value from checkbox : %s" %(MSP, ASP))
- 
+
     # Receive lat/lon from geosearching
     if request.method == "POST":
+        # Get the personnalisation of the profile
+        intersections = bool(request.form.get('checkbox_inter'))
+        # intersections =  request.form.get("checkbox_inter")
+        MSP =  request.form.get("checkbox_MSP")
+        ASP =  request.form.get("checkbox_ASP")
+        print("When getting into the request.method loop, the personnalisation is \n intersection value from checkbox: %s \n ASP value from checkbox : %s \nMSP value from checkbox : %s" %(intersections, ASP, MSP))
         # Get the lat/lon of start and destination places
         latlngData = request.get_json()
         print("Before reprojecting with pyproj", latlngData)
