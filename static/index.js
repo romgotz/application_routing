@@ -9,7 +9,7 @@ lon_dest = false;
 // Click variable to count click on leaflet map. To make sure we have 2 clicks that are start/destination 
 var click = 0;
 // Variable to receive geojson layer containing path from algo routing (coming from app.py) 
-var geojson;
+var geojson = false;
 // Define icons for start/destination markers with some parameters
 const icone_depart = L.icon({
   iconUrl: 'static/img/marker_dep.svg',
@@ -27,7 +27,6 @@ const icone_dest = L.icon({
 });
 // Define two markers for destination and start (set lat,lng otherwise does not work, do not know why)
 var marker_dest = L.marker((45, 5), {icon:icone_dest}, {draggable: true})
-console.log("marker dest", marker_dest)
 var marker_dep = L.marker((45, 5), {icon:icone_depart}, {draggable: true})
 
 // Different background layers accessible in leaflet 
@@ -104,10 +103,11 @@ function reset() {
   map.removeLayer(marker_dep);
   map.removeLayer(marker_dest);
   // Remove the geojson layer
-  map.removeLayer(geojson)
+  if (geojson) {
+    map.removeLayer(geojson)
+  }
   // Reset the map view to begining
   map.setView([46.5196535, 6.6322734], 13); 
-  // resetEvnt.innerHTML = "YOU CLICKED ME!";
 }
 // Get color function for coloring of path in leaflet 
 function getColor(d) {
@@ -126,7 +126,9 @@ function style(feature) {
   */
   return {
       color: getColor(feature.properties.TC_DWV),
-      fillOpacity: 0.9
+      fillOpacity: 1,
+      weight: 5,
+      opacity: 1
   };
 }
 
@@ -166,7 +168,7 @@ info.update = function (props) {
   Get information to display in the info tooltip  
   */ 
   this._div.innerHTML = '<h4> Info sur le trajet </h4>' +  (props ?
-      '<b> Nom : ' + props.name + '</b><br /> Qualité cyclable :' + props.TC_DWV  
+      '<b> Nom : ' + props.name + '</b><br /> Qualité cyclable :' + props.TC_DWV + '<br /> Pente : ' + props.grade*100 + ' %'
       : 'Hover sur le trajet proposé');
 };
 info.onAdd = function (map) {
@@ -212,12 +214,15 @@ function onLocationFound(e) {
       if(response.ok) {
           response.json()
           .then(function(response) {
-              console.log("The sending of the data from python file works");
+            console.log(response)
               // Add path as geojson layer 
               geojson = L.geoJson(response, {
                 style: style,
                 onEachFeature: onEachFeature
             }).addTo(map)
+            // Fit the leaflet map to the path 
+            map.fitBounds(geojson.getBounds())
+            console.log(geojson)
             });
       }
       else {
@@ -229,7 +234,6 @@ function onLocationFound(e) {
       })
     }) // end of fetch for dest
   } else {
-    console.log("All lat/lon do not exist yet")
   } // End of if for fetch
 
 }; // end of location found
@@ -248,7 +252,6 @@ function onMapClick(e) {
     lat_dest = e.latlng.lat
     lon_dest = e.latlng.lng
   } else { // To determine start
-    console.log("This click is to determine the start")
     // Add marker at the coordinates
     marker_dep.setLatLng(e.latlng).addTo(map);
     // marker_dest = L.marker(e.latlng, {icon:icone_depart}, {draggable: true}).addTo(map);
@@ -275,14 +278,13 @@ function onMapClick(e) {
     if(response.ok) {
         response.json()
         .then(function(response) {
-          console.log("The sending of the data from python file works")
-          console.log(response)
-          console.log(response.features[0].properties.TC_DWV)
           // data = TC_DWV
           geojson = L.geoJson(response, {
             style: style,
             onEachFeature: onEachFeature
         }).addTo(map)
+        // Fit the map to the path 
+        map.fitBounds(geojson.getBounds())
         }) // End of then 
       } // end if
 
@@ -309,7 +311,6 @@ L.control.layers(baseLayers).addTo(map);
 info.addTo(map);
 // Add reset function 
 resetEvnt.addEventListener("click", reset());
-
 
 // 4. Interactivity about gelocalisation 
 
@@ -370,6 +371,8 @@ form_depart.addEventListener('submit', async (event) => {
                 style: style,
                 onEachFeature: onEachFeature
             }).addTo(map)
+            // Fit map to the path 
+            map.fitBounds(geojson.getBounds())
           });
       }
       else {
@@ -422,6 +425,8 @@ form_dest.addEventListener('submit', async (event) => {
                 style: style,
                 onEachFeature: onEachFeature
             }).addTo(map)
+            // Fit map to the path 
+            map.fitBounds(geojson.getBounds())
           });
       }
       else {
