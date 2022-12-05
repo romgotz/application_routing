@@ -131,7 +131,7 @@ def get_min_node(nodes, weights):
     return min_node
 
 # A detailed version of the Dijkstra algorithm for directed graphs with edges with positive weights 
-def get_dijkstra_dist(graph, source, intersection_cost, verbose=False):
+def get_dijkstra_dist(graph, source,edge_weight, intersection_cost, verbose=False):
     global in_cost, edge_cost  
     nodes = list(graph.nodes())
     edges = graph.edges()
@@ -155,7 +155,7 @@ def get_dijkstra_dist(graph, source, intersection_cost, verbose=False):
         # Update weights
         for w in nodes:
             if (v, w) in edges:
-                edge_cost = nx.get_edge_attributes(G, "PD_DWV")[v,w]
+                edge_cost = nx.get_edge_attributes(G, edge_weight)[v,w]
                 in_cost = 0
                 if v in intersection_cost['id_in'].unique():
                     pred = paths[v] # get predecessor from current node
@@ -179,16 +179,16 @@ def get_dijkstra_dist(graph, source, intersection_cost, verbose=False):
     return { 'distances': dists, 'paths': paths }
 
 # Show shortes path from source node to target node
-def get_shortest_path(dwg, source, target, intersection_cost, verbose=False):
+def get_shortest_path(dwg, source, target, edge_weight, intersection_cost, verbose=False):
     # Validation
     if not source in dwg.nodes() or not target in dwg.nodes():
         print('Both the source and the target must exist in the graph.')
         return {}
     
     start_time = timeit.default_timer()
-    
+    print("The edge weight is", edge_weight)
     # Get the distance from 'source' to the other nodes
-    sol = get_dijkstra_dist(dwg, source, intersection_cost, verbose)
+    sol = get_dijkstra_dist(dwg, source,edge_weight, intersection_cost, verbose)
     paths = sol['paths']
     
     # Get shortest path from 'source' to 'target'
@@ -215,7 +215,16 @@ def get_shortest_path(dwg, source, target, intersection_cost, verbose=False):
 def index():
     # Construct the graph when pages is reached
     construct_digraph(dir_edges_list=dir_edges_list_epsg3857, nodes_df=nodes_epsg3857)
-    global path   
+    global path
+
+    # Get the checkboxes value to determine which data to use 
+    # vae = request.form.get("VAE")
+    intersections =  request.form.get("intersections")
+    MSP =  request.form.get("HP_matin")
+    ASP =  request.form.get("HP_soir")
+
+    print("MSP value from checkbox: %s \n ASP value from checkbox : %s" %(MSP, ASP))
+ 
     # Receive lat/lon from geosearching
     if request.method == "POST":
         # Get the lat/lon of start and destination places
@@ -236,16 +245,31 @@ def index():
         target = get_nearest_node(kdTree=kd_tree, x=dest_lat, y=dest_lon)
 
         # Find the shortest path btw the two nodes
+        # Different trafic values according to checkboxes, by default it is DWV
+        if (MSP == True):
+            # Determine the names of the coloumns to take into account
+            trafic_col = 'MSP_ALLE'
+            tc_col = 'TC_MSP'
+            pd_col = 'PD_MSP'
+        elif (ASP == True):
+            trafic_col = 'ASP_ALLE'
+            tc_col = 'TC_ASP'
+            pd_col = 'PD_ASP'
+        else:
+            trafic_col = 'DWV_ALLE'
+            tc_col = 'TC_DWV'
+            pd_col = 'PD_DWV'
         # print("Determining the shortest path. It might take a moment")
-        # start_time = time.time()
-        # path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
-        # print("The shortest path was found.  It took [seconds]", (time.time() - start_time) , "The path is \n", path)
+        start_time = time.time()
+        # path = get_shortest_path(dwg=G,source=start,target=target,edge_weight=pd_col,intersection_cost= cost_intersection, verbose=False)
+        print("The shortest path was found.  It took [seconds]", (time.time() - start_time) , "The path is \n", path)
         # Fixed path to go quicker
         path = [266860942, 414238563, 573250847, 418016472, 602689559, 267510221, 602689574, 573250900, 8790226568]
         # Determine the edges corresponding to the nodes in the path
-        nodes_path = path # ['path']
+        nodes_path = path# ['path']
         # Define a df that will receive the edges and necessary data 
-        params_to_keep = ['u', 'v','oneway', 'name', 'DWV_ALLE', 'MSP_ALLE', 'ASP_ALLE', 'grade', 'TC_DWV', 'TC_MSP', 'TC_ASP', 'Am_cycl', 'geometry']
+        # params_to_keep = ['u', 'v','oneway', 'name', 'DWV_ALLE', 'MSP_ALLE', 'ASP_ALLE', 'grade','PD_DWV','PD_ASP','PD_MSP', 'TC_DWV', 'TC_MSP', 'TC_ASP', 'Am_cycl', 'geometry']
+        params_to_keep = ['u', 'v','oneway', 'name', 'grade', 'Am_cycl', trafic_col, pd_col, tc_col, 'geometry']
         # Take the edges from df with crs = epsg:4326 to match leaflet 
         edges_df = dir_edges_list_epsg4326[params_to_keep]
         edges_df.drop(edges_df.index[:], inplace=True)
@@ -256,20 +280,13 @@ def index():
             edge = edge[params_to_keep]
             edges_df = pd.concat([edges_df, edge])
 
-        edges_df = edges_df.sort_values(by=['TC_DWV'])
+        edges_df = edges_df.sort_values(by=[tc_col])
         # There still are duplicated edges, so remove them by keeping the one with the lowest TC
         edges_df.drop_duplicates(subset=['u', 'v'], inplace=True, ignore_index=True)
         # Have to tranform it into json 
         edges_geojson = edges_df.to_json()
 
         return edges_geojson
-
-    start  = request.args.get('start', "")
-    target  = request.args.get('target', "")
-    if start and target:
-        start = int(start)
-        target = int(target) # change string into integers
-        path = get_shortest_path(G, start, target, cost_intersection, verbose=False)
 
     return render_template(
         'index.html', 
