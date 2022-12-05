@@ -7,7 +7,7 @@ lat_dest = false;
 lon_dep = false;
 lon_dest = false;
 // Click variable to count click on leaflet map. To make sure we have 2 clicks that are start/destination 
-var click = 0; 
+var click = 0;
 // Variable to receive geojson layer containing path from algo routing (coming from app.py) 
 var geojson;
 // Define icons for start/destination markers with some parameters
@@ -24,7 +24,11 @@ const icone_dest = L.icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34]
-  });
+});
+// Define two markers for destination and start (set lat,lng otherwise does not work, do not know why)
+var marker_dest = L.marker((45, 5), {icon:icone_dest}, {draggable: true})
+console.log("marker dest", marker_dest)
+var marker_dep = L.marker((45, 5), {icon:icone_depart}, {draggable: true})
 
 // Different background layers accessible in leaflet 
 // OSM
@@ -52,7 +56,9 @@ const baseLayers = {
 
 // Variables for leaflet map
 var info = L.control(); // tooltip containing info 
+// var info = L.tooltip();
 var map = L.map('map'); // contains leaflet map
+
 
 // Variables for the geosearching adresse toolbar
 // Setting geosearch control button
@@ -67,12 +73,14 @@ const OSMprovider = new OpenStreetMapProvider({
     autoComplete: true
   },
 });
-// Selection of the text in the start toolbar in html  
+// Selection of elements in html 
 const form_depart = document.getElementById('geosearch_depart');
 const input_dep = form_depart.querySelector('input[type="text"]');
 // Selection of the text in the destination toolbar in html  
 const form_dest = document.getElementById('geosearch_dest');
 const input_dest = form_dest.querySelector('input[type="text"]');
+// Selection 
+const resetEvnt = document.getElementById("resetBtn");
 
 /* const searchControl = new GeoSearchControl({
   provider: new OpenStreetMapProvider(),
@@ -83,7 +91,24 @@ const input_dest = form_dest.querySelector('input[type="text"]');
   autoCompleteDelay: 250
 }) */
 
-// 2. Define functions about events from interactions  
+// 2. Define functions about events from interactions
+// Deal with reset btn event
+function reset() {
+  // Reset all lat/lon values to false and click to 0
+  lat_dep= false;
+  lat_dest = false;
+  lon_dep = false;
+  lon_dest = false;
+  click = 0;
+  // Remove markers
+  map.removeLayer(marker_dep);
+  map.removeLayer(marker_dest);
+  // Remove the geojson layer
+  map.removeLayer(geojson)
+  // Reset the map view to begining
+  map.setView([46.5196535, 6.6322734], 13); 
+  // resetEvnt.innerHTML = "YOU CLICKED ME!";
+}
 // Get color function for coloring of path in leaflet 
 function getColor(d) {
   /* Return color according to the class. The color palette comes from colorbrewer
@@ -126,7 +151,7 @@ function resetHighlight(e) {
 
 function onEachFeature(feature, layer) {
   /*
-  function to call in L.geojson (onEachFeature: onEachFeature) to deal with the mouse events.
+  Function to call in L.geojson (onEachFeature: onEachFeature) to deal with the mouse events.
   Mousover returns the highlight function while mouseout calls the reset info function
   */
   layer.on({
@@ -140,8 +165,8 @@ info.update = function (props) {
   /*
   Get information to display in the info tooltip  
   */ 
-  this._div.innerHTML = '<h4> Informations </h4>' +  (props ?
-      '<b>' + props.name + '</b><br />' + props.TC_DWV + ' Qualité cyclable '
+  this._div.innerHTML = '<h4> Info sur le trajet </h4>' +  (props ?
+      '<b> Nom : ' + props.name + '</b><br /> Qualité cyclable :' + props.TC_DWV  
       : 'Hover sur le trajet proposé');
 };
 info.onAdd = function (map) {
@@ -158,14 +183,16 @@ info.onAdd = function (map) {
 function onLocationFound(e) {
   // Add marker at click button and get lat/lng
   if (button_id==='btnGetLocStart') {
-    marker_dep = L.marker(e.latlng, {icon:icone_depart}, {draggable: true}).addTo(map);
-    lat_dep = e.latlnglng.lat;
-    lon_dep = e.latlnglng.lng;
+    // marker_dep = L.marker(e.latlng, {icon:icone_depart}, {draggable: true}).addTo(map);
+    marker_dep.setLatLng(e.latlng).addTo(map);
+    lat_dep = e.latlng.lat;
+    lon_dep = e.latlng.lng;
 
   } else if (button_id==='btnGetLocDest') { // add marker for destination
-    marker_dest = L.marker(e.latlng, {icon:icone_dest}, {draggable: true}).addTo(map);
-    lat_dest = e.latlnglng.lat;
-    lon_dest = e.latlnglng.lng;
+    // marker_dest = L.marker(e.latlng, {icon:icone_dest}, {draggable: true}).addTo(map);
+    marker_dest.setLatLng(e.latlng).addTo(map);
+    lat_dest = e.latlng.lat;
+    lon_dest = e.latlng.lng;
   } ; // end else
   // If 4 lat/lon exists, then send it to python using fetch
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
@@ -186,6 +213,11 @@ function onLocationFound(e) {
           response.json()
           .then(function(response) {
               console.log("The sending of the data from python file works");
+              // Add path as geojson layer 
+              geojson = L.geoJson(response, {
+                style: style,
+                onEachFeature: onEachFeature
+            }).addTo(map)
             });
       }
       else {
@@ -208,18 +240,19 @@ function onMapClick(e) {
     return
   };
   click += 1
-  if (lat_dep && lon_dep) {
-    console.log("This click is to determine the destination.")
+  if (lat_dep && lon_dep) { // For the destination
     // Add marker to it
-    marker_dest = L.marker(e.latlng, {icon:icone_dest}, {draggable: true}).addTo(map);
+    marker_dest.setLatLng(e.latlng).addTo(map);
+    // marker_dest = L.marker(e.latlng, {icon:icone_dest}, {draggable: true}).addTo(map);
     // Get lat/lon coordinates
     lat_dest = e.latlng.lat
     lon_dest = e.latlng.lng
-  } else {
+  } else { // To determine start
     console.log("This click is to determine the start")
     // Add marker at the coordinates
-    marker_dest = L.marker(e.latlng, {icon:icone_depart}, {draggable: true}).addTo(map);
-    // Get lat/lng and project them in epsg 3857
+    marker_dep.setLatLng(e.latlng).addTo(map);
+    // marker_dest = L.marker(e.latlng, {icon:icone_depart}, {draggable: true}).addTo(map);
+    // Get lat/lng coordinates
     lat_dep = e.latlng.lat;
     lon_dep = e.latlng.lng;
   }; // end else statement  
@@ -274,6 +307,9 @@ OpenStreetMap_CH.addTo(map)
 L.control.layers(baseLayers).addTo(map);
 // Add the tooltip info 
 info.addTo(map);
+// Add reset function 
+resetEvnt.addEventListener("click", reset());
+
 
 // 4. Interactivity about gelocalisation 
 
@@ -296,7 +332,7 @@ map.on('locationfound', onLocationFound);
 map.on('click', onMapClick);
 
 // 4.3 Geosearching adress toolbars 
-
+// Start search 
 form_depart.addEventListener('submit', async (event) => {
   if (lat_dep && lon_dep) {
     alert("Vous avez déjà déterminé le point de départ. Voulez-vous définir un nouveau point de départ ?")
@@ -307,7 +343,8 @@ form_depart.addEventListener('submit', async (event) => {
   lon_dep = results_dep[0]['x'];// take the first result (if many results)
   lat_dep = results_dep[0]['y']; // take the first result (if many results)
   // Put a marker on the adresse
-  L.marker([lat_dep,lon_dep], {icon: icone_depart}).addTo(map);
+  marker_dep.setLatLng(e.latlng).addTo(map);
+  // L.marker([lat_dep,lon_dep], {icon: icone_depart}).addTo(map);
 
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
     // Add fetch to send it to flask app
@@ -328,7 +365,11 @@ form_depart.addEventListener('submit', async (event) => {
           response.json()
           .then(function(response) {
               console.log("The sending of the data from python file works")
-              var myLayer = L.geoJson(response).addTo(map);
+              // Add path as geojson layer 
+              geojson = L.geoJson(response, {
+                style: style,
+                onEachFeature: onEachFeature
+            }).addTo(map)
           });
       }
       else {
@@ -344,7 +385,6 @@ form_depart.addEventListener('submit', async (event) => {
 }); // End geosearching depart
 
 // For destination
-
 form_dest.addEventListener('submit', async (event) => {
   if (lat_dest && lon_dest) {
     alert("Vous avez déjà déterminé la destination. Voulez-vous définir une nouvelle destination ?")
@@ -355,7 +395,8 @@ form_dest.addEventListener('submit', async (event) => {
   lon_dest = results_dest[0]['x']; // take the first result (if many results)
   lat_dest = results_dest[0]['y']; // take the first result (if many results)
   // Add marker to the map
-  L.marker([lat_dest,lon_dest], {icon: icone_dest}).addTo(map);
+  marker_dest.setLatLng(e.latlng).addTo(map);
+  // L.marker([lat_dest,lon_dest], {icon: icone_dest}).addTo(map);
   // Need to send those variables to python app.py
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
     // Add fetch to send it to flask app
@@ -376,7 +417,11 @@ form_dest.addEventListener('submit', async (event) => {
           response.json()
           .then(function(response) {
               console.log("The sending of the data from python file works")
-              var myLayer = L.geoJson(response).addTo(map)
+              // Add path as geojson layer 
+              geojson = L.geoJson(response, {
+                style: style,
+                onEachFeature: onEachFeature
+            }).addTo(map)
           });
       }
       else {
@@ -389,4 +434,3 @@ form_dest.addEventListener('submit', async (event) => {
   
     }; // 
 });
-

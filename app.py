@@ -74,12 +74,8 @@ for i in range(0, len(nodes_epsg3857)):
     nodes_epsg3857.loc[nodes_epsg3857.index == i, 'y'] = y
 # Keep only x,y coordinates
 nodes_epsg3857_xy = nodes_epsg3857[['x', 'y']]
-print("The x,y nodes in epsg3857 looks like\n", nodes_epsg3857_xy.head(10))
-print("The types are\n", nodes_epsg3857_xy.dtypes)
-# Create the kd_tree 
+# Create the kd_tree (to find nearest node from localisation coordinates)
 kd_tree = spatial.KDTree(nodes_epsg3857_xy)
-
-print("The kd tree has been built. It looks like\n", kd_tree)
 
 path = []
 # Python functions necessary for routing
@@ -111,7 +107,7 @@ def get_nearest_node(kdTree, x, y):
     X = np.array([x])
     Y = np.array([y])
     # Determine position and distance
-    dist, pos = kd_tree.query(np.array([X, Y]).T, k=1)
+    dist, pos = kdTree.query(np.array([X, Y]).T, k=1)
     # Get value of the position (it is in a np.array)
     index = pos[0]
     closest_node = nodes_epsg3857.loc[nodes_epsg3857.index==index]
