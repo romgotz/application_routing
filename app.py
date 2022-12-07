@@ -228,55 +228,61 @@ def get_itineraries():
 
     # Get the checkboxes value to determine which data to use 
     # vae = request.form.get("VAE")
-    intersections =  request.form.get("intersections", "true")
-    MSP =  request.form.get("HP_matin", "false")
-    ASP =  request.form.get("HP_soir", "false")
-
+    # intersections =  request.form.get("intersections", "true")
 
     # Receive lat/lon from geosearching
     if request.method == "POST":
-        # Get the personnalisation of the profile
-        intersections = bool(request.form.get('checkbox_inter'))
-        # intersections =  request.form.get("checkbox_inter")
-        MSP =  request.form.get("checkbox_MSP")
-        ASP =  request.form.get("checkbox_ASP")
-        print("When getting into the request.method loop, the personnalisation is \n intersection value from checkbox: %s \n ASP value from checkbox : %s \nMSP value from checkbox : %s" %(intersections, ASP, MSP))
-        # Get the lat/lon of start and destination places
-        latlngData = request.get_json()
-        print("Before reprojecting with pyproj", latlngData)
-        # Project the lat/lng in epsg3857 to have meters
-        outProj = Proj('epsg:3857')
-        inProj = Proj('epsg:4326')
-        orig_lat = latlngData['lat_dep']
-        orig_lon= latlngData['lon_dep']
-        dest_lat = latlngData['lat_dest']
-        dest_lon= latlngData['lon_dest']
-        orig_lat, orig_lon = transform(inProj,outProj,orig_lat,orig_lon)
-        dest_lat, dest_lon = transform(inProj,outProj,dest_lat, dest_lon)
-        print("After projecting into epsg:3857. Orig_lat: %s ; Orig_lon : %s ;  Dest_lat: %s; Dest_lon : %s" %(orig_lat, orig_lon, dest_lat, dest_lon))
-        print("Determining the nearest node")
-        start = get_nearest_node(kdTree=kd_tree, x=orig_lat, y=orig_lon)
-        target = get_nearest_node(kdTree=kd_tree, x=dest_lat, y=dest_lon)
 
-        # Find the shortest path btw the two nodes
+        # Get data necessary for routing : settings and lat/lng
+        routingData = request.get_json()
+        print("The data for the routing coming from js with fetch is\n", routingData)
+        # Determine settings from checkboxes
+        settings = routingData['Settings']
+        print(settings)
         # Different trafic values according to checkboxes, by default it is DWV
-        if (MSP == True):
+        # HP_matin = ASP
+        if ('HP_matin' in settings):
+            print("The HP_matin chekboxes is on")
             # Determine the names of the coloumns to take into account
             trafic_col = 'MSP_ALLE'
             tc_col = 'TC_MSP'
             pd_col = 'PD_MSP'
-        elif (ASP == True):
+        # HP_soir = ASP
+        elif ('HP_soir' in settings):
+            print("The HP_soir chekboxes is on")
             trafic_col = 'ASP_ALLE'
             tc_col = 'TC_ASP'
             pd_col = 'PD_ASP'
+        # DWV (by default) 
         else:
+            print("DWV is used by default")
             trafic_col = 'DWV_ALLE'
             tc_col = 'TC_DWV'
             pd_col = 'PD_DWV'
+        # For the intersections and vae 
+        if ('intersections' in settings ):
+            cost_inter = True
+        if('vae' in settings):
+            vae = True
+        # Now the lat/lng data 
+        # Project the lat/lng in epsg3857 to have meters
+        outProj = Proj('epsg:3857')
+        inProj = Proj('epsg:4326')
+        orig_lat = routingData['lat_dep']
+        orig_lon= routingData['lon_dep']
+        dest_lat = routingData['lat_dest']
+        dest_lon= routingData['lon_dest']
+        orig_lat, orig_lon = transform(inProj,outProj,orig_lat,orig_lon)
+        dest_lat, dest_lon = transform(inProj,outProj,dest_lat, dest_lon)
+        # print("After projecting into epsg:3857. Orig_lat: %s ; Orig_lon : %s ;  Dest_lat: %s; Dest_lon : %s" %(orig_lat, orig_lon, dest_lat, dest_lon))
+        print("Determining the nearest node")
+        start = get_nearest_node(kdTree=kd_tree, x=orig_lat, y=orig_lon)
+        target = get_nearest_node(kdTree=kd_tree, x=dest_lat, y=dest_lon)
+
         # print("Determining the shortest path. It might take a moment")
         start_time = time.time()
         # path = get_shortest_path(dwg=G,source=start,target=target,edge_weight=pd_col,intersection_cost= cost_intersection, verbose=False)
-        print("The shortest path was found.  It took [seconds]", (time.time() - start_time) , "The path is \n", path)
+        print("The shortest path was found. It took [seconds]", (time.time() - start_time) , "The path is \n", path)
         # Fixed path to go quicker
         path = [266860942, 414238563, 573250847, 418016472, 602689559, 267510221, 602689574, 573250900, 8790226568]
         # Determine the edges corresponding to the nodes in the path

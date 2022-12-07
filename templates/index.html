@@ -13,76 +13,72 @@
         <!-- Explication about the web app -->
         <p id="explication"> Cette application permet de trouver un itinéraire à vélo le plus sûr et confortable possible. Définissez votre point de départ et destination, soit en cliquant sur la carte soit en cherchant l'adresse.</p>
 
-        <!-- Add button to determine start and destination -->
-        <!-- Start button -->
-        <div class="input-group mb-3">
-            <!-- Prepend, what is in front (image of marker) -->
-            <div class="input-group-prepend">
-                <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dep.svg" width="35" height="15"> </span>
-            </div>
-            <!-- Geosearcher text box from Leaflet Geosearch-->
-            <form id="geosearch_depart">
-                <input type="text" placeholder="Adresse de départ (Ou clique sur carte)" value="">
-            </form>
-            <!-- Append, what is after text box (image of localisation) -->
-            <div class="input-group-append">
-                <button id="btnGetLocStart" class="btn btn-outline-secondary current-location"  type="button" title="Centrer sur votre position">
-                <img src="/static/img/current-location.svg" width="15" height="15">
-                </button>
-            </div>
-        </div> <!-- En start button -->
-        <br>
+        <!-- Add different possibilities to determine start and destination -->
+            <!-- Start button -->
+            <div class="input-group mb-3">
+                <!-- Prepend, what is in front (image of marker) -->
+                <div class="input-group-prepend">
+                    <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dep.svg" width="35" height="15"> </span>
+                </div>
+                <!-- Geosearcher text box from Leaflet Geosearch-->
+                <form id="geosearch_depart">
+                    <input type="text" placeholder="Adresse de départ (Ou clique sur carte)" value="">
+                </form>
+                <!-- Append, what is after text box ; button to get localisation (image of localisation) -->
+                <div class="input-group-append">
+                    <button id="btnGetLocStart" formmethod="post" class="btn btn-outline-secondary current-location"  type="button" title="Centrer sur votre position">
+                    <img src="/static/img/current-location.svg" width="15" height="15">
+                    </button>
+                </div>
+            </div> <!-- End start button -->
+            <br>
 
-        <!-- Destination button -->
-        <div class="input-group mb-3">
-            <!-- Prepend, what is in front (image of marker) -->
-            <div class="input-group-prepend">
-                <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dest.svg" width="35" height="15"> </span>
-            </div>
-            <!-- Geosearcher text box from Leaflet Geosearch-->
-            <form id="geosearch_dest">
-                <input type="text" placeholder="Adresse de destination (Ou clique sur carte)" value="">
-            </form>
-            <!-- Append, what is after text box (image of localisation) -->
-            <div class="input-group-append">
-                <button id="btnGetLocDest" class="btn btn-outline-secondary current-location" type="button" title="Centrer sur votre position">
-                <img src="/static/img/current-location.svg" width="15" height="15">
-                </button>
-            </div>
-        </div> <!-- End of destination button -->
+            <!-- Destination button -->
+            <div class="input-group mb-3">
+                <!-- Prepend, what is in front (image of marker) -->
+                <div class="input-group-prepend">
+                    <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dest.svg" width="35" height="15"> </span>
+                </div>
+                <!-- Geosearcher text box from Leaflet Geosearch-->
+                <form id="geosearch_dest">
+                    <input type="text" placeholder="Adresse de destination (Ou clique sur carte)" value="">
+                </form>
+                <!-- Append, what is after text box ; button of get localisation (image of localisation) -->
+                <div class="input-group-append">
+                    <button id="btnGetLocDest" class="btn btn-outline-secondary current-location" type="button" title="Centrer sur votre position">
+                    <img src="/static/img/current-location.svg" width="15" height="15">
+                    </button>
+                </div>
+            </div> <!-- End of destination button -->
 
-        <!-- Add a reset button for lat/lon/path. the function is defined in js file  -->
-        <button id="resetBtn"  type="button" title="Remettre à zéro la destination et le départ" onclick=reset()>
-            Recommencer
-        </button>
+            <!-- Add a reset button for lat/lon/path. the function is defined in js file  -->
+            <button id="resetBtn"  type="button" title="Remettre à zéro la destination et le départ" onclick=reset()>
+                Recommencer
+            </button>
+            <br>
 
-        <!-- Checkboxes to personalize routing data-->
-        <div class="form-check form-switch">
+            <!-- Checkboxes to personalize routing data-->
             <!-- VAE -->
-            <input class="form-check-input" type="checkbox" role="switch" id="VAE" name="checkbox_vae">
-            <label class="form-check-label" for="VAE">Vélo à Assitance Electrique </label>
-        </div>
-        <div class="form-check form-switch">
-            <!-- Intersections -->
-            <input class="form-check-input" type="checkbox" role="switch" id="intersections" name="checkbox_inter" checked>
-            <label class="form-check-label" for="intersections"> Intersections </label>
-        </div>
-        <div class="form-check form-switch">
-            <!-- Heure de pointe matin (7-8h) -->
-            <input class="form-check-input" type="checkbox" role="switch" id="HP_matin" name="checkbox_MSP">
-            <label class="form-check-label" for="matin"> Heure de pointe matin 7-8h </label>
-        </div>
-        <div class="form-check form-switch">
-            <!-- Heure de pointe soir (17-18h) -->
-            <input class="form-check-input" type="checkbox" role="switch" id="HP_soir" name="checkbox_ASP" disabled>
-            <label class="form-check-label" for="soir"> Heure de pointe soir 17-18h </label>
-        </div>      
-
-
-
-
-
-
+            <br>
+            <h6> Personnalisation paramètres pour routing </h6>
+            <div class="form-check form-switch"> {# Have to specify this class to have bootstrap button #}
+                <!-- VAE -->
+                <input class="form-check-input" type="checkbox" role="switch" name="settings" value="vae">
+                <label class="form-check-label"> VAE </label>
+                <br>
+                <!-- HP_matin -->
+                <input class="form-check-input" id="HP_matin" type="checkbox" role="switch" name="settings" value="HP_matin">
+                <label class="form-check-label"> Heure de pointe matin 7-8h </label>
+                <br>
+                <!-- HP soir -->
+                <input class="form-check-input" id="HP_soir" type="checkbox" role="switch" name="settings" value="HP_soir">
+                <label class="form-check-label"> Heure de pointe soir 17-18h </label>
+                <br>
+                <!-- Intersections -->
+                <input class="form-check-input" type="checkbox" role="switch" name="settings" value="intersections" checked>
+                <label class="form-check-label"> Intersections </label>
+            </div>
+   
     </div> <!-- end of sidebar -->
 
 </div> <!-- End of main -->

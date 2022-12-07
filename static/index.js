@@ -1,3 +1,25 @@
+// Select all checkboxes with the name 'settings' using querySelectorAll.
+var checkboxes = document.querySelectorAll("input[type=checkbox][name=settings]");
+let enabledSettings = ['intersection'] // defines it with default settings
+console.log(enabledSettings)
+
+// Use Array.forEach to add an event listener to each checkbox.
+checkboxes.forEach(function(checkbox) {
+  checkbox.addEventListener('change', function() {
+    // Can t check HP_matin et HP_soir at the same time, so disable if one is checked
+    if(checkbox.id == 'HP_matin' && checkbox.checked) {
+      document.getElementById("HP_soir").disabled = true;
+    } else if (checkbox.id == 'HP_soir' && checkbox.checked) {
+      document.getElementById("HP_matin").disabled = true;
+    }
+    enabledSettings = 
+      Array.from(checkboxes) // Convert checkboxes to an array to use filter and map.
+      .filter(i => i.checked) // Use Array.filter to remove unchecked checkboxes.
+      .map(i => i.value) // Use Array.map to extract only the checkbox values from the array of objects.
+    console.log(enabledSettings)
+  }) // End AddEventListener 
+});
+
 // 1. Define variables and constant used in global
 
 // Variables that receive lat/lon from leaflet sent to flask 
@@ -208,7 +230,8 @@ function onLocationFound(e) {
       "lat_dep": lat_dep,
       "lon_dep" : lon_dep,
       "lon_dest" : lon_dest,
-      "lat_dest" : lat_dest
+      "lat_dest" : lat_dest, 
+      "Settings": enabledSettings
     })
     .then(function (response){
       if(response.ok) {
@@ -271,7 +294,8 @@ function onMapClick(e) {
   "lon_dep" : lon_dep,
   "lat_dep" : lat_dep,
   "lon_dest" : lon_dest,
-  "lat_dest" : lat_dest
+  "lat_dest" : lat_dest,
+  "Settings": enabledSettings
   })
   })
   .then(function (response){
