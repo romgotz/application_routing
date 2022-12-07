@@ -18,19 +18,15 @@ max-height:5%;
 font-family: "Roboto";
 font-size: 16pt;
 }
-
-#comment {
-margin: 20px;
-top: 5px;
-font-family: "Roboto";
-font-size: 24px
-  }
-
+#explication{
+  font-size: 12pt;
+  font-family: "Roboto"; 
+}
 #map {
 position: relative;
 top: 5px;
-height: 560px;
-width: 840px;
+height: 540px;
+width: 720px;
 margin: 5px;
 background-color: #f5f5dc;
 border: 1px solid #666;
@@ -40,10 +36,10 @@ border: 1px solid #666;
 position: relative;
 padding: 5px;
 margin: 5px;
-top: -565px;
-left: 840px;
-height: 560px;
-width: 320px;
+top: -540px;
+left: 720px;
+height: 540px;
+width: 420px;
 background-color: #f0f0f0;
 border: 1px solid #666;
 }
