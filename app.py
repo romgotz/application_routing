@@ -64,20 +64,22 @@ cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'
 cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'] = cost_intersection['cost_mini_roundabout']
 cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'] = 0
 
-# Prepare KDTree from nodes_epsg3857 to determine the nearest node
-# Take coordinates in geometry column and assign it to x,y columns
-for i in range(0, len(nodes_epsg3857)):
-    point = nodes_epsg3857['geometry'][i]
-    x = point.coords[0][0]
-    y = point.coords[0][1]
-    nodes_epsg3857.loc[nodes_epsg3857.index == i, 'x'] = x
-    nodes_epsg3857.loc[nodes_epsg3857.index == i, 'y'] = y
-# Keep only x,y coordinates
-nodes_epsg3857_xy = nodes_epsg3857[['x', 'y']]
-# Create the kd_tree (to find nearest node from localisation coordinates)
-kd_tree = spatial.KDTree(nodes_epsg3857_xy)
+def construct_kdTree(nodes):
+    global kd_tree
+    # Prepare KDTree from nodes_epsg3857 to determine the nearest node
+    # Take coordinates in geometry column and assign it to x,y columns
+    for i in range(0, len(nodes_epsg3857)):
+        point = nodes_epsg3857['geometry'][i]
+        x = point.coords[0][0]
+        y = point.coords[0][1]
+        nodes_epsg3857.loc[nodes_epsg3857.index == i, 'x'] = x
+        nodes_epsg3857.loc[nodes_epsg3857.index == i, 'y'] = y
+    # Keep only x,y coordinates
+    nodes_epsg3857_xy = nodes_epsg3857[['x', 'y']]
+    # Create the kd_tree (to find nearest node from localisation coordinates)
+    kd_tree = spatial.KDTree(nodes_epsg3857_xy)
+    return kd_tree
 
-path = []
 # Python functions necessary for routing
 # Construct directed graph 
 def construct_digraph(dir_edges_list, nodes_df):
@@ -208,13 +210,20 @@ def get_shortest_path(dwg, source, target, edge_weight, intersection_cost, verbo
     
     return { 'path': path, 'weight': weight }
 
+# Opening page of the app. It constructs the graph used fro
+@app.route('/')
+def opening_page():
+    print("It is the welcome page")
+    construct_digraph(dir_edges_list=dir_edges_list_epsg3857, nodes_df=nodes_epsg3857)
+    construct_kdTree(nodes=nodes_epsg3857)
+    return render_template('index.html')
 
+path = []
 # Different app routes
 # Index definition, main page of the application
 @app.route('/', methods=["GET", "POST"])
-def index():
-    # Construct the graph when pages is reached
-    construct_digraph(dir_edges_list=dir_edges_list_epsg3857, nodes_df=nodes_epsg3857)
+def get_itineraries():
+    print("It is the page that calculates the itineraries")
     global path
 
     # Get the checkboxes value to determine which data to use 
