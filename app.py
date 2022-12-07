@@ -32,7 +32,7 @@ nodes_epsg3857_xy = pd.read_csv(r'static/data/nodes_xy_epsg3857.csv', sep=";", e
 cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='utf-8', sep=';')
 
 # Remove uncessary column
-nodes_epsg3857_xy.drop(columns=[' Unnamed: 0'], inplace=True)
+nodes_epsg3857_xy.drop(columns=['Unnamed: 0'], inplace=True)
 # Change some columns types. u/v columns are stored as float values, but need to be integers 
 # Round float values 
 dir_edges_list['u'] = dir_edges_list['u'].round()
@@ -71,8 +71,6 @@ cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'
 def construct_kdTree(nodes_xy):
     """ Function that take nodes df containing x,y coordinates and construct a spatial KD_Tree that can be used to determine nearest node"""
     global kd_tree # Defines global so it can be used in the entire application code
-    # Prepare KDTree from nodes_epsg3857 to determine the nearest node
-    # Take coordinates in geometry column and assign it to x,y columns
     # Create the kd_tree (to find nearest node from localisation coordinates)
     kd_tree = spatial.KDTree(nodes_xy)
     return kd_tree
@@ -210,10 +208,8 @@ def get_shortest_path(dwg, source, target, edge_weight, intersection_cost, verbo
 # Opening page of the app. It constructs the graph used fro
 @app.route('/')
 def opening_page():
-    print("It is the welcome page")
     construct_digraph(dir_edges_list=dir_edges_list_epsg3857, nodes_df=nodes_epsg3857)
-    construct_kdTree(nodes=nodes_epsg3857_xy)
-    print("KD_tree constructed : ", kd_tree)
+    construct_kdTree(nodes_xy=nodes_epsg3857_xy)
     return render_template('index.html')
 
 path = []
@@ -221,38 +217,27 @@ path = []
 # Index definition, main page of the application
 @app.route('/', methods=["GET", "POST"])
 def get_itineraries():
-    print("It is the page that calculates the itineraries")
     global path
-
-    # Get the checkboxes value to determine which data to use 
-    # vae = request.form.get("VAE")
-    # intersections =  request.form.get("intersections", "true")
-
-    # Receive lat/lon from geosearching
+    # Receive data for the routing from js file
     if request.method == "POST":
         # Get data necessary for routing : settings and lat/lng
         routingData = request.get_json()
-        print("The data for the routing coming from js with fetch is\n", routingData)
         # Determine settings from checkboxes
         settings = routingData['Settings']
-        print(settings)
         # Different trafic values according to checkboxes, by default it is DWV
         # HP_matin = ASP
         if ('HP_matin' in settings):
-            print("The HP_matin chekboxes is on")
             # Determine the names of the coloumns to take into account
             trafic_col = 'MSP_ALLE'
             tc_col = 'TC_MSP'
             pd_col = 'PD_MSP'
         # HP_soir = ASP
         elif ('HP_soir' in settings):
-            print("The HP_soir chekboxes is on")
             trafic_col = 'ASP_ALLE'
             tc_col = 'TC_ASP'
             pd_col = 'PD_ASP'
         # DWV (by default) 
         else:
-            print("DWV is used by default")
             trafic_col = 'DWV_ALLE'
             tc_col = 'TC_DWV'
             pd_col = 'PD_DWV'
@@ -272,20 +257,18 @@ def get_itineraries():
         orig_lat, orig_lon = transform(inProj,outProj,orig_lat,orig_lon)
         dest_lat, dest_lon = transform(inProj,outProj,dest_lat, dest_lon)
         # print("After projecting into epsg:3857. Orig_lat: %s ; Orig_lon : %s ;  Dest_lat: %s; Dest_lon : %s" %(orig_lat, orig_lon, dest_lat, dest_lon))
-        print("Determining the nearest node")
         start = get_nearest_node(kdTree=kd_tree, x=orig_lat, y=orig_lon)
         target = get_nearest_node(kdTree=kd_tree, x=dest_lat, y=dest_lon)
 
-        # print("Determining the shortest path. It might take a moment")
+        print("Determining the shortest path. It might take a moment")
         start_time = time.time()
-        # path = get_shortest_path(dwg=G,source=start,target=target,edge_weight=pd_col,intersection_cost= cost_intersection, verbose=False)
+        path = get_shortest_path(dwg=G,source=start,target=target,edge_weight=pd_col,intersection_cost = cost_intersection, verbose=False)
         print("The shortest path was found. It took [seconds]", (time.time() - start_time) , "The path is \n", path)
         # Fixed path to go quicker
         path = [266860942, 414238563, 573250847, 418016472, 602689559, 267510221, 602689574, 573250900, 8790226568]
         # Determine the edges corresponding to the nodes in the path
         nodes_path = path# ['path']
         # Define a df that will receive the edges and necessary data 
-        # params_to_keep = ['u', 'v','oneway', 'name', 'DWV_ALLE', 'MSP_ALLE', 'ASP_ALLE', 'grade','PD_DWV','PD_ASP','PD_MSP', 'TC_DWV', 'TC_MSP', 'TC_ASP', 'Am_cycl', 'geometry']
         params_to_keep = ['u', 'v','oneway', 'name', 'grade', 'Am_cycl', trafic_col, pd_col, tc_col, 'geometry']
         # Take the edges from df with crs = epsg:4326 to match leaflet 
         edges_df = dir_edges_list_epsg4326[params_to_keep]
