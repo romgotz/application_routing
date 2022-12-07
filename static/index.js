@@ -456,6 +456,12 @@ checkboxes.forEach(function(checkbox) {
     } else if (checkbox.id == 'HP_soir' && checkbox.checked) {
       document.getElementById("HP_matin").disabled = true;
     }
+    // If checkbox is false again, need to change disabled again
+    if(checkbox.id == 'HP_matin' &! checkbox.checked) {
+      document.getElementById("HP_soir").disabled = false;
+    } else if (checkbox.id == 'HP_soir' &! checkbox.checked) {
+      document.getElementById("HP_matin").disabled = false;
+    }
     enabledSettings = 
       Array.from(checkboxes) // Convert checkboxes to an array to use filter and map.
       .filter(i => i.checked) // Use Array.filter to remove unchecked checkboxes.
