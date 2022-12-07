@@ -27,9 +27,12 @@ app.debug = True
 dir_edges_list = gpd.read_file(r'static/data/edgelist_network.shp', encoding='utf-8')
 # Nodes file to build the graph 
 nodes = gpd.read_file(r'static/data/osm_nodes_epsg32632.shp', encoding='utf-8')
+nodes_epsg3857_xy = pd.read_csv(r'static/data/nodes_xy_epsg3857.csv', sep=";", encoding='utf-8')
 # Intersection cost file for the shortest path algorithm
 cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='utf-8', sep=';')
 
+# Remove uncessary column
+nodes_epsg3857_xy.drop(columns=[' Unnamed: 0'], inplace=True)
 # Change some columns types. u/v columns are stored as float values, but need to be integers 
 # Round float values 
 dir_edges_list['u'] = dir_edges_list['u'].round()
@@ -64,20 +67,14 @@ cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'
 cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'] = cost_intersection['cost_mini_roundabout']
 cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'] = 0
 
-def construct_kdTree(nodes):
-    global kd_tree
+
+def construct_kdTree(nodes_xy):
+    """ Function that take nodes df containing x,y coordinates and construct a spatial KD_Tree that can be used to determine nearest node"""
+    global kd_tree # Defines global so it can be used in the entire application code
     # Prepare KDTree from nodes_epsg3857 to determine the nearest node
     # Take coordinates in geometry column and assign it to x,y columns
-    for i in range(0, len(nodes_epsg3857)):
-        point = nodes_epsg3857['geometry'][i]
-        x = point.coords[0][0]
-        y = point.coords[0][1]
-        nodes_epsg3857.loc[nodes_epsg3857.index == i, 'x'] = x
-        nodes_epsg3857.loc[nodes_epsg3857.index == i, 'y'] = y
-    # Keep only x,y coordinates
-    nodes_epsg3857_xy = nodes_epsg3857[['x', 'y']]
     # Create the kd_tree (to find nearest node from localisation coordinates)
-    kd_tree = spatial.KDTree(nodes_epsg3857_xy)
+    kd_tree = spatial.KDTree(nodes_xy)
     return kd_tree
 
 # Python functions necessary for routing
@@ -96,8 +93,8 @@ def construct_digraph(dir_edges_list, nodes_df):
     print("crs gdf in construct graph function :", crs_gdf)
     G = nx.DiGraph(G, crs=crs_gdf)
 
-    if ox.projection.is_projected("epsg:4326"):
-        print("Graph is projected") # make sure crs params is defined
+    if ox.projection.is_projected(crs_gdf):
+        print("Graph is projected in ", crs_gdf) # make sure crs params is defined
     else:
         print("Graph is not projected")
  
@@ -215,7 +212,8 @@ def get_shortest_path(dwg, source, target, edge_weight, intersection_cost, verbo
 def opening_page():
     print("It is the welcome page")
     construct_digraph(dir_edges_list=dir_edges_list_epsg3857, nodes_df=nodes_epsg3857)
-    construct_kdTree(nodes=nodes_epsg3857)
+    construct_kdTree(nodes=nodes_epsg3857_xy)
+    print("KD_tree constructed : ", kd_tree)
     return render_template('index.html')
 
 path = []
@@ -232,7 +230,6 @@ def get_itineraries():
 
     # Receive lat/lon from geosearching
     if request.method == "POST":
-
         # Get data necessary for routing : settings and lat/lng
         routingData = request.get_json()
         print("The data for the routing coming from js with fetch is\n", routingData)
