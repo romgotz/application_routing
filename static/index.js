@@ -1,25 +1,3 @@
-// Select all checkboxes with the name 'settings' using querySelectorAll.
-var checkboxes = document.querySelectorAll("input[type=checkbox][name=settings]");
-let enabledSettings = ['intersection'] // defines it with default settings
-console.log(enabledSettings)
-
-// Use Array.forEach to add an event listener to each checkbox.
-checkboxes.forEach(function(checkbox) {
-  checkbox.addEventListener('change', function() {
-    // Can t check HP_matin et HP_soir at the same time, so disable if one is checked
-    if(checkbox.id == 'HP_matin' && checkbox.checked) {
-      document.getElementById("HP_soir").disabled = true;
-    } else if (checkbox.id == 'HP_soir' && checkbox.checked) {
-      document.getElementById("HP_matin").disabled = true;
-    }
-    enabledSettings = 
-      Array.from(checkboxes) // Convert checkboxes to an array to use filter and map.
-      .filter(i => i.checked) // Use Array.filter to remove unchecked checkboxes.
-      .map(i => i.value) // Use Array.map to extract only the checkbox values from the array of objects.
-    console.log(enabledSettings)
-  }) // End AddEventListener 
-});
-
 // 1. Define variables and constant used in global
 
 // Variables that receive lat/lon from leaflet sent to flask 
@@ -102,6 +80,10 @@ const form_dest = document.getElementById('geosearch_dest');
 const input_dest = form_dest.querySelector('input[type="text"]');
 // Selection 
 const resetEvnt = document.getElementById("resetBtn");
+// Select all checkboxes 
+const checkboxes = document.querySelectorAll("input[type=checkbox][name=settings]");
+// Default settings for the checkboxes
+let enabledSettings = ['intersection']; // defines it with default settings
 
 /* const searchControl = new GeoSearchControl({
   provider: new OpenStreetMapProvider(),
@@ -462,4 +444,22 @@ form_dest.addEventListener('submit', async (event) => {
       })
   
     }; // 
+});
+
+// 5. Interactivity with the checkboxes to define settings
+// Use Array.forEach to add an event listener to each checkbox.
+checkboxes.forEach(function(checkbox) {
+  checkbox.addEventListener('change', function() {
+    // Can t check HP_matin et HP_soir at the same time, so disable if one is checked
+    if(checkbox.id == 'HP_matin' && checkbox.checked) {
+      document.getElementById("HP_soir").disabled = true;
+    } else if (checkbox.id == 'HP_soir' && checkbox.checked) {
+      document.getElementById("HP_matin").disabled = true;
+    }
+    enabledSettings = 
+      Array.from(checkboxes) // Convert checkboxes to an array to use filter and map.
+      .filter(i => i.checked) // Use Array.filter to remove unchecked checkboxes.
+      .map(i => i.value) // Use Array.map to extract only the checkbox values from the array of objects.
+    console.log(enabledSettings)
+  }) // End AddEventListener 
 });
