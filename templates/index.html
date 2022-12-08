@@ -21,8 +21,8 @@
                     <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dep.svg" width="45" height="20"> </span>
                 </div>
                 <!-- Geosearcher text box from Leaflet Geosearch-->
-                <form>
-                    <input id="geosearch-depart" type="text" placeholder="Adresse de départ (Ou clique sur carte/bouton)" value="">
+                <form id="geosearch-depart">
+                    <input type="text" placeholder="Adresse de départ (Ou clique sur carte/bouton)" value="">
                 </form>
                 <!-- Append, what is after text box ; button to get localisation (image of localisation) -->
                 <div class="input-group-append">
@@ -40,8 +40,8 @@
                     <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dest.svg" width="45" height="20"> </span>
                 </div>
                 <!-- Geosearcher text box from Leaflet Geosearch-->
-                <form>
-                    <input id="geosearch-destination" type="text" placeholder="Adresse de destination (Ou clique sur carte/bouton)" value="">
+                <form id="geosearch-destination">
+                    <input type="text" placeholder="Adresse de destination (Ou clique sur carte/bouton)" value="">
                 </form>
                 <!-- Append, what is after text box ; button of get localisation (image of localisation) -->
                 <div class="input-group-append">
@@ -51,7 +51,7 @@
                 </div>
             </div> <!-- End of destination button -->
 
-            <!-- Add a reset button for lat/lon/path. the function is defined in js file  -->
+            <!-- Add a reset button for lat/lon/path. the function is defined in js file   -->
             <button id="resetBtn"  type="button" title="Remettre à zéro la destination et le départ" onclick=reset()>
                 Recommencer
             </button>
@@ -62,9 +62,13 @@
             <br>
             <h6> Personnalisation paramètres pour routing </h6>
             <div class="form-check form-switch"> {# Have to specify this class to have bootstrap button #}
-                <!-- VAE -->
-                <input class="form-check-input" id="vae" type="checkbox" role="switch" name="settings" value="vae">
-                <label class="form-check-label"> VAE </label>
+                <!-- Pente -->
+                <input class="form-check-input" id="pente" type="checkbox" role="switch" name="settings" value="pente" checked>
+                <label class="form-check-label"> Pente </label>
+                <br>
+                <!-- Intersections -->
+                <input class="form-check-input" id="intersections" type="checkbox" role="switch" name="settings" value="intersections" checked>
+                <label class="form-check-label"> Intersections </label>
                 <br>
                 <!-- HP_matin -->
                 <input class="form-check-input" id="HP_matin" type="checkbox" role="switch" name="settings" value="HP_matin">
@@ -74,9 +78,6 @@
                 <input class="form-check-input" id="HP_soir" type="checkbox" role="switch" name="settings" value="HP_soir">
                 <label class="form-check-label"> Heure de pointe soir 17-18h </label>
                 <br>
-                <!-- Intersections -->
-                <input class="form-check-input" id="intersections" type="checkbox" role="switch" name="settings" value="intersections" checked>
-                <label class="form-check-label"> Intersections </label>
             </div>
    
     </div> <!-- end of sidebar -->

@@ -241,11 +241,11 @@ def get_itineraries():
             trafic_col = 'DWV_ALLE'
             tc_col = 'TC_DWV'
             pd_col = 'PD_DWV'
-        # For the intersections and vae 
-        if ('intersections' in settings ):
-            cost_inter = True
-        if('vae' in settings):
-            vae = True
+        # For the intersections and pente 
+        if ('intersections' not in settings ):
+            cost_inter = False
+        if('pente' not in settings):
+            pente = False
         # Now the lat/lng data 
         # Project the lat/lng in epsg3857 to have meters
         outProj = Proj('epsg:3857')
@@ -265,9 +265,9 @@ def get_itineraries():
         path = get_shortest_path(dwg=G,source=start,target=target,edge_weight=pd_col,intersection_cost = cost_intersection, verbose=False)
         print("The shortest path was found. It took [seconds]", (time.time() - start_time) , "The path is \n", path)
         # Fixed path to go quicker
-        path = [266860942, 414238563, 573250847, 418016472, 602689559, 267510221, 602689574, 573250900, 8790226568]
+        # path = [266860942, 414238563, 573250847, 418016472, 602689559, 267510221, 602689574, 573250900, 8790226568]
         # Determine the edges corresponding to the nodes in the path
-        nodes_path = path# ['path']
+        nodes_path = path['path']
         # Define a df that will receive the edges and necessary data 
         params_to_keep = ['u', 'v','oneway', 'name', 'grade', 'Am_cycl', trafic_col, pd_col, tc_col, 'geometry']
         # Take the edges from df with crs = epsg:4326 to match leaflet 

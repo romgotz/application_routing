@@ -62,26 +62,28 @@ var map = L.map('map'); // contains leaflet map
 // Variables for the geosearching adresse toolbar
 // Setting geosearch control button
 var OpenStreetMapProvider = window.GeoSearch.OpenStreetMapProvider;
-// var GeoSearchControl = window.GeoSearch.GeoSearchControl;
 // OSM provider
 const OSMprovider = new OpenStreetMapProvider({
   params: {
     'accept-language': 'fr', // render results in French
     countrycodes: 'ch', // limit search results to the Switzerland
-    autoClose: true,
-    autoComplete: true
   },
 });
 
 // Selection of the text in the destination toolbar in html  
-const input_dep = document.getElementById('geosearch-depart');
-const input_dest = document.getElementById('geosearch-destination');
+// Depart
+const form_dep = document.getElementById("geosearch-depart");
+var input_dep = form_dep.querySelector('input[type="text"]');
+// Destination
+const form_dest = document.getElementById("geosearch-destination");
+var input_dest = form_dest.querySelector('input[type="text"]');
+
 // Selection 
-const resetEvnt = document.getElementById("resetBtn");
+// const resetEvnt = document.getElementById("resetBtn");
 // Select all checkboxes 
 const checkboxes = document.querySelectorAll("input[type=checkbox][name=settings]");
 // Default settings for the checkboxes
-let enabledSettings = ['intersection']; // defines it with default settings
+let enabledSettings = ['intersections', 'pente']; // defines it with default settings
 
 // 2. Define functions about events from interactions
 // Deal with reset btn event
@@ -103,8 +105,7 @@ function reset() {
   input_dep.disabled = false;
   input_dep.value="" // empty string as value
   input_dest.disabled = false;
-  input_dest.value=""
-  console.log("value in input_dep after reseting everything", input_dep.value)
+  input_dest.value="" 
   document.getElementById("HP_soir").checked = false;
   document.getElementById("HP_matin").checked = false;
   document.getElementById("intersections").checked = true;
@@ -316,7 +317,7 @@ L.control.layers(baseLayers).addTo(map);
 // Add the tooltip info 
 info.addTo(map);
 // Add reset function on button click 
-resetEvnt.addEventListener("click", reset());
+// resetEvnt.addEventListener("click", reset());
 
 // 4. Interactivity about gelocalisation 
 
@@ -340,11 +341,16 @@ map.on('click', onMapClick);
 
 // 4.3 Geosearching adress toolbars 
 // Start search 
-input_dep.addEventListener('submit', async (event) => {
+form_dep.addEventListener('submit', async (event) => {
+  console.log("Getting into the addEventListener")
   event.preventDefault();
   const results_dep = await OSMprovider.search({ query: input_dep.value });
-  lon_dep = results_dep[0]['x'];// take the first result (if many results)
-  lat_dep = results_dep[0]['y']; // take the first result (if many results)
+  // Selecting data from the results. Take the first results for simplicity
+  lon_dep = results_dep[0]['x'];// lon
+  lat_dep = results_dep[0]['y']; // lat
+  adresse = results_dep[0]['label'] // adresse 
+  // Changing the text value in the form in html
+  input_dep.value = adresse
   // Put a marker on the adresse
   marker_dep.setLatLng([lat_dep, lon_dep]).addTo(map);
 
@@ -387,7 +393,7 @@ input_dep.addEventListener('submit', async (event) => {
   
     }; // 
     
-}); // End geosearching depart */
+}); // End geosearching depart 
 
 // For destination
 input_dest.addEventListener('submit', async (event) => {
@@ -400,6 +406,10 @@ input_dest.addEventListener('submit', async (event) => {
   lon_dest = results_dest[0]['x']; // take the first result (if many results)
   lat_dest = results_dest[0]['y']; // take the first result (if many results)
   // Add marker to the map
+  adresse = results_dest[0]['label'] // adresse 
+  // Changing the text value in the form in html
+  input_dest.value = adresse
+
   marker_dest.setLatLng([lon_dest, lat_dest]).addTo(map);
   // L.marker([lat_dest,lon_dest], {icon: icone_dest}).addTo(map);
   // Need to send those variables to python app.py
@@ -463,5 +473,6 @@ checkboxes.forEach(function(checkbox) {
       Array.from(checkboxes) // Convert checkboxes to an array to use filter and map.
       .filter(i => i.checked) // Use Array.filter to remove unchecked checkboxes.
       .map(i => i.value) // Use Array.map to extract only the checkbox values from the array of objects.
+    console.log("checkboxes value", enabledSettings)
   }) // End AddEventListener 
 });
