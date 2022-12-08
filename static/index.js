@@ -83,7 +83,7 @@ var input_dest = form_dest.querySelector('input[type="text"]');
 // Select all checkboxes 
 const checkboxes = document.querySelectorAll("input[type=checkbox][name=settings]");
 // Default settings for the checkboxes
-let enabledSettings = ['intersections', 'pente']; // defines it with default settings
+let enabledSettings = ['pente']; // defines it with default settings
 
 // 2. Define functions about events from interactions
 // Deal with reset btn event
@@ -108,9 +108,9 @@ function reset() {
   input_dest.value="" 
   document.getElementById("HP_soir").checked = false;
   document.getElementById("HP_matin").checked = false;
-  document.getElementById("intersections").checked = true;
-  document.getElementById("vae").checked = false;
-  enabledSettings = ['intersection']
+  document.getElementById("intersections").checked = false;
+  document.getElementById("pente").checked = true;
+  enabledSettings = ['pente']
   // Reset the map view to begining
   map.setView([46.5196535, 6.6322734], 13); 
 }
