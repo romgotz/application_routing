@@ -21,8 +21,8 @@
                     <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dep.svg" width="45" height="20"> </span>
                 </div>
                 <!-- Geosearcher text box from Leaflet Geosearch-->
-                <form id="geosearch_depart">
-                    <input type="text" placeholder="Adresse de départ (Ou clique sur carte/bouton)" value="">
+                <form>
+                    <input id="geosearch-depart" type="text" placeholder="Adresse de départ (Ou clique sur carte/bouton)" value="">
                 </form>
                 <!-- Append, what is after text box ; button to get localisation (image of localisation) -->
                 <div class="input-group-append">
@@ -40,8 +40,8 @@
                     <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dest.svg" width="45" height="20"> </span>
                 </div>
                 <!-- Geosearcher text box from Leaflet Geosearch-->
-                <form id="geosearch_dest">
-                    <input type="text" placeholder="Adresse de destination (Ou clique sur carte/bouton)" value="">
+                <form>
+                    <input id="geosearch-destination" type="text" placeholder="Adresse de destination (Ou clique sur carte/bouton)" value="">
                 </form>
                 <!-- Append, what is after text box ; button of get localisation (image of localisation) -->
                 <div class="input-group-append">
@@ -63,7 +63,7 @@
             <h6> Personnalisation paramètres pour routing </h6>
             <div class="form-check form-switch"> {# Have to specify this class to have bootstrap button #}
                 <!-- VAE -->
-                <input class="form-check-input" type="checkbox" role="switch" name="settings" value="vae">
+                <input class="form-check-input" id="vae" type="checkbox" role="switch" name="settings" value="vae">
                 <label class="form-check-label"> VAE </label>
                 <br>
                 <!-- HP_matin -->
@@ -75,7 +75,7 @@
                 <label class="form-check-label"> Heure de pointe soir 17-18h </label>
                 <br>
                 <!-- Intersections -->
-                <input class="form-check-input" type="checkbox" role="switch" name="settings" value="intersections" checked>
+                <input class="form-check-input" id="intersections" type="checkbox" role="switch" name="settings" value="intersections" checked>
                 <label class="form-check-label"> Intersections </label>
             </div>
    

@@ -72,27 +72,16 @@ const OSMprovider = new OpenStreetMapProvider({
     autoComplete: true
   },
 });
-// Selection of elements in html 
-const form_depart = document.getElementById('geosearch_depart');
-const input_dep = form_depart.querySelector('input[type="text"]');
+
 // Selection of the text in the destination toolbar in html  
-const form_dest = document.getElementById('geosearch_dest');
-const input_dest = form_dest.querySelector('input[type="text"]');
+const input_dep = document.getElementById('geosearch-depart');
+const input_dest = document.getElementById('geosearch-destination');
 // Selection 
 const resetEvnt = document.getElementById("resetBtn");
 // Select all checkboxes 
 const checkboxes = document.querySelectorAll("input[type=checkbox][name=settings]");
 // Default settings for the checkboxes
 let enabledSettings = ['intersection']; // defines it with default settings
-
-/* const searchControl = new GeoSearchControl({
-  provider: new OpenStreetMapProvider(),
-  style: 'bar',
-  //--------
-  // if autoComplete is false, need manually calling provider.search({ query: input.value })
-  autoComplete: true,         // optional: true|false  - default true
-  autoCompleteDelay: 250
-}) */
 
 // 2. Define functions about events from interactions
 // Deal with reset btn event
@@ -109,7 +98,18 @@ function reset() {
   // Remove the geojson layer
   if (geojson) {
     map.removeLayer(geojson)
-  }
+  };
+  // Reset all forms and checkboxes to default values
+  input_dep.disabled = false;
+  input_dep.value="" // empty string as value
+  input_dest.disabled = false;
+  input_dest.value=""
+  console.log("value in input_dep after reseting everything", input_dep.value)
+  document.getElementById("HP_soir").checked = false;
+  document.getElementById("HP_matin").checked = false;
+  document.getElementById("intersections").checked = true;
+  document.getElementById("vae").checked = false;
+  enabledSettings = ['intersection']
   // Reset the map view to begining
   map.setView([46.5196535, 6.6322734], 13); 
 }
@@ -315,7 +315,7 @@ OpenStreetMap_CH.addTo(map)
 L.control.layers(baseLayers).addTo(map);
 // Add the tooltip info 
 info.addTo(map);
-// Add reset function 
+// Add reset function on button click 
 resetEvnt.addEventListener("click", reset());
 
 // 4. Interactivity about gelocalisation 
@@ -340,18 +340,13 @@ map.on('click', onMapClick);
 
 // 4.3 Geosearching adress toolbars 
 // Start search 
-form_depart.addEventListener('submit', async (event) => {
-  if (lat_dep && lon_dep) {
-    alert("Vous avez déjà déterminé le point de départ. Voulez-vous définir un nouveau point de départ ?")
-    return 
-  };
+input_dep.addEventListener('submit', async (event) => {
   event.preventDefault();
   const results_dep = await OSMprovider.search({ query: input_dep.value });
   lon_dep = results_dep[0]['x'];// take the first result (if many results)
   lat_dep = results_dep[0]['y']; // take the first result (if many results)
   // Put a marker on the adresse
-  marker_dep.setLatLng(e.latlng).addTo(map);
-  // L.marker([lat_dep,lon_dep], {icon: icone_depart}).addTo(map);
+  marker_dep.setLatLng([lat_dep, lon_dep]).addTo(map);
 
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
     // Add fetch to send it to flask app
@@ -364,7 +359,8 @@ form_depart.addEventListener('submit', async (event) => {
     "lon_dep" : lon_dep,
     "lat_dep" : lat_dep,
     "lon_dest" : lon_dest,
-    "lat_dest" : lat_dest
+    "lat_dest" : lat_dest, 
+    "Settings": enabledSettings
     })
     })
     .then(function (response){
@@ -391,10 +387,10 @@ form_depart.addEventListener('submit', async (event) => {
   
     }; // 
     
-}); // End geosearching depart
+}); // End geosearching depart */
 
 // For destination
-form_dest.addEventListener('submit', async (event) => {
+input_dest.addEventListener('submit', async (event) => {
   if (lat_dest && lon_dest) {
     alert("Vous avez déjà déterminé la destination. Voulez-vous définir une nouvelle destination ?")
     return 
@@ -404,7 +400,7 @@ form_dest.addEventListener('submit', async (event) => {
   lon_dest = results_dest[0]['x']; // take the first result (if many results)
   lat_dest = results_dest[0]['y']; // take the first result (if many results)
   // Add marker to the map
-  marker_dest.setLatLng(e.latlng).addTo(map);
+  marker_dest.setLatLng([lon_dest, lat_dest]).addTo(map);
   // L.marker([lat_dest,lon_dest], {icon: icone_dest}).addTo(map);
   // Need to send those variables to python app.py
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
@@ -418,7 +414,8 @@ form_dest.addEventListener('submit', async (event) => {
     "lon_dep" : lon_dep,
     "lat_dep" : lat_dep,
     "lon_dest" : lon_dest,
-    "lat_dest" : lat_dest
+    "lat_dest" : lat_dest, 
+    "Settings": enabledSettings
     })
     })
     .then(function (response){
@@ -466,6 +463,5 @@ checkboxes.forEach(function(checkbox) {
       Array.from(checkboxes) // Convert checkboxes to an array to use filter and map.
       .filter(i => i.checked) // Use Array.filter to remove unchecked checkboxes.
       .map(i => i.value) // Use Array.map to extract only the checkbox values from the array of objects.
-    console.log(enabledSettings)
   }) // End AddEventListener 
 });
