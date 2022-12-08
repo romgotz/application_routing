@@ -244,10 +244,13 @@ def get_itineraries():
             tc_col = 'TC_DWV'
             pd_col = 'PD_DWV'
         # For the intersections and pente 
-        if ('intersections' not in settings ):
+        if ('intersections' in settings ): # It will be the other way around at the end, just to make finding shortest path quicker
+            cost_inter = True
+        else:
             cost_inter = False
         if('pente' not in settings):
             pente = False
+            
         # Now the lat/lng data 
         # Project the lat/lng in epsg3857 to have meters
         outProj = Proj('epsg:3857')
@@ -258,18 +261,31 @@ def get_itineraries():
         dest_lon= routingData['lon_dest']
         orig_lat, orig_lon = transform(inProj,outProj,orig_lat,orig_lon)
         dest_lat, dest_lon = transform(inProj,outProj,dest_lat, dest_lon)
-        # print("After projecting into epsg:3857. Orig_lat: %s ; Orig_lon : %s ;  Dest_lat: %s; Dest_lon : %s" %(orig_lat, orig_lon, dest_lat, dest_lon))
+        # Get the nearest node id for start and target
         start = get_nearest_node(kdTree=kd_tree, x=orig_lat, y=orig_lon)
         target = get_nearest_node(kdTree=kd_tree, x=dest_lat, y=dest_lon)
-
-        print("Determining the shortest path. It might take a moment")
+        print("Determining the shortest path.")
         start_time = time.time()
-        path = get_shortest_path(dwg=G,source=start,target=target,edge_weight=pd_col,intersection_cost = cost_intersection, verbose=False)
-        print("The shortest path was found. It took [seconds]", (time.time() - start_time) , "The path is \n", path)
+        # If take intersections into account, use own code (but slow)
+        if cost_inter:
+            print("Using own code to determine shortest path")
+            path = get_shortest_path(dwg=G,
+            source=start,
+            target=target,
+            edge_weight=pd_col,
+            intersection_cost = cost_intersection,
+            verbose=False)
+            print("The shortest path was found. It took [seconds]", (time.time() - start_time) , "The path is \n", path)
+        else: # If not checked, use networkx for quicker response
+            print("Using networkx to determine shortest path")
+            path = nx.single_source_dijkstra(G, source=start, target=target, cutoff=None, weight=pd_col)
+            distance = path[0]
+            path = path[-1]
+            print("The perceived distance is (in km)", distance/1000, "and the corresponding path is \n", path)
         # Fixed path to go quicker
         # path = [266860942, 414238563, 573250847, 418016472, 602689559, 267510221, 602689574, 573250900, 8790226568]
         # Determine the edges corresponding to the nodes in the path
-        nodes_path = path['path']
+        nodes_path = path # ['path']
         # Define a df that will receive the edges and necessary data 
         params_to_keep = ['u', 'v','oneway', 'name', 'grade', 'Am_cycl', trafic_col, pd_col, tc_col, 'geometry']
         # Take the edges from df with crs = epsg:4326 to match leaflet 
