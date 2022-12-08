@@ -275,17 +275,18 @@ def get_itineraries():
             edge_weight=pd_col,
             intersection_cost = cost_intersection,
             verbose=False)
-            print("The shortest path was found. It took [seconds]", (time.time() - start_time) , "The path is \n", path)
+            nodes_path = path['path']
+            distance = path['weight']
+            print("The weight is %s and the weight is \n %s" %(distance, nodes_path))
         else: # If not checked, use networkx for quicker response
             print("Using networkx to determine shortest path")
             path = nx.single_source_dijkstra(G, source=start, target=target, cutoff=None, weight=pd_col)
             distance = path[0]
-            path = path[-1]
+            nodes_path = path[-1]
             print("The perceived distance is (in km)", distance/1000, "and the corresponding path is \n", path)
         # Fixed path to go quicker
         # path = [266860942, 414238563, 573250847, 418016472, 602689559, 267510221, 602689574, 573250900, 8790226568]
         # Determine the edges corresponding to the nodes in the path
-        nodes_path = path # ['path']
         # Define a df that will receive the edges and necessary data 
         params_to_keep = ['u', 'v','oneway', 'name', 'grade', 'Am_cycl', trafic_col, pd_col, tc_col, 'geometry']
         # Take the edges from df with crs = epsg:4326 to match leaflet 

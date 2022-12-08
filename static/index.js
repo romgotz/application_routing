@@ -173,7 +173,7 @@ info.update = function (props) {
   Get information to display in the info tooltip  
   */ 
   this._div.innerHTML = '<h4> Info sur le trajet </h4>' +  (props ?
-      '<b> Nom : ' + props.name + '</b><br /> Qualité cyclable :' + props.TC_DWV + '<br /> Pente : ' + props.grade*100 + ' %'
+      '<b> Nom : ' + props.name + '</b><br /> Qualité cyclable :' + props.TC_DWV + '<br /> Pente : ' + props.grade*100 + ' %' + '<br> Trafic :' + props.DWV_ALLE + '[véh./jour] <br> Aménagement cyclable : ' + props.Am_cycl
       : 'Hover sur le trajet proposé');
 };
 info.onAdd = function (map) {
