@@ -33,10 +33,6 @@ cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='
 # Lausanne boundaries
 boundaries_lausanne_epsg4326 =  gpd.read_file(r'static/data/limite_lausanne_epsg4326.shp', encoding='utf-8')
 
-# save it as geojson 
-boundaries_lausanne_epsg4326.to_file(r'static/data/limite_lausanne_epsg4326.geojson', driver='GeoJSON')
-print("In geojson format \n", boundaries_lausanne_epsg4326)
-
 # Remove uncessary column
 nodes_epsg3857_xy.drop(columns=['Unnamed: 0'], inplace=True)
 # Change some columns types. u/v columns are stored as float values, but need to be integers 
