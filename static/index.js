@@ -316,6 +316,9 @@ OpenStreetMap_CH.addTo(map)
 L.control.layers(baseLayers).addTo(map);
 // Add the tooltip info 
 info.addTo(map);
+var border = new L.GeoJSON.AJAX("data/limite_lausanne_epsg4326.geojson").addTo(map);
+console.log("lausanne border geojson downloaded", border)
+
 // Add reset function on button click 
 // resetEvnt.addEventListener("click", reset());
 
