@@ -184,7 +184,7 @@ info.update = function (props) {
   Get information to display in the info tooltip  
   */ 
   this._div.innerHTML = '<h4> Info sur le trajet </h4>' +  (props ?
-      '<b> Nom : ' + props.name + '</b><br /> Qualité cyclable :' + props.TC_DWV + '<br /> Pente : ' + (props.grade*100).toFixed(2) + ' %' + '<br> Trafic :' + props.DWV_ALLE.toFixed(2) + '[véh./jour] <br> Aménagement cyclable : ' + props.Am_cycl
+      '<b> Nom : ' + props.name + '</b><br /> Qualité cyclable :' + (props.TC_DWV).toFixed(2) + '<br /> Pente : ' + (props.grade*100).toFixed(2) + ' %' + '<br> Trafic :' + (props.DWV_ALLE).toFixed(2) + '[véh./jour] <br> Aménagement cyclable : ' + props.Am_cycl
       : 'Hover sur le trajet proposé');
 };
 info.onAdd = function (map) {
@@ -341,7 +341,6 @@ L.control.layers(baseLayers).addTo(map);
 info.addTo(map);
 
 // Add legend about cycling quality class
-
 legend.onAdd = function (map) {
 
     var div = L.DomUtil.create('div', 'info legend'),

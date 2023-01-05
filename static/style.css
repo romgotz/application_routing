@@ -32,6 +32,11 @@ background-color: #f5f5dc;
 border: 1px solid #666;
 }
 
+.legend {
+  line-height: 18px;
+  color: #555;
+}
+
 #sidebar {
 position: relative;
 padding: 5px;
