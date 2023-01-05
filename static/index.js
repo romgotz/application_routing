@@ -384,7 +384,6 @@ map.on('click', onMapClick);
 // 4.3 Geosearching adress toolbars 
 // Start search 
 form_dep.addEventListener('submit', async (event) => {
-  console.log("Getting into the addEventListener")
   event.preventDefault();
   const results_dep = await OSMprovider.search({ query: input_dep.value });
   // Selecting data from the results. Take the first results for simplicity
@@ -392,15 +391,12 @@ form_dep.addEventListener('submit', async (event) => {
   lat_dep = results_dep[0]['y']; // lat
   adresse = results_dep[0]['label'] // adresse 
   console.log(typeof(adresse))
-  console.log(adresse)
   adresse = adresse.replace(', Plateforme 10', '');
   adresse = adresse.replace(", District de Lausanne", "");
   adresse = adresse.replace(", Suisse", "");
   adresse = adresse.replace(", Vaud", "");
-  console.log("After removing unecessary element of adress", adresse)
-
   // Changing the text value in the form in html
-  input_dep.value = adresse
+  input_dep.value = adresse;
   // Put a marker on the adresse
   marker_dep.setLatLng([lat_dep, lon_dep]).addTo(map);
 
@@ -452,25 +448,23 @@ form_dep.addEventListener('submit', async (event) => {
 }); // End geosearching depart 
 
 // For destination
-input_dest.addEventListener('submit', async (event) => {
-  console.log("Getting in the AddEventListener for the destination")
-  if (lat_dest && lon_dest) {
-    alert("Vous avez déjà déterminé la destination. Si vous voulez recommencer, appuyer sur le bouton correspondant")
-    return 
-  };
+form_dest.addEventListener('submit', async (event) => {
   event.preventDefault();
   const results_dest = await OSMprovider.search({ query: input_dest.value });
+  // Selecting data from the results. Take the first results for simplicity
   lon_dest = results_dest[0]['x']; // take the first result (if many results)
   lat_dest = results_dest[0]['y']; // take the first result (if many results)
-  // Add marker to the map
   adresse = results_dest[0]['label'] // adresse
-  console.log(adresse) 
-  // Changing the text value in the form in html
+  // Removing unecessary details in adress 
+  adresse = adresse.replace(', Plateforme 10', '');
+  adresse = adresse.replace(", District de Lausanne", "");
+  adresse = adresse.replace(", Suisse", "");
+  adresse = adresse.replace(", Vaud", "");
+  // Adding the found adresse in the form in html
   input_dest.value = adresse
 
   // Adding marker 
-  marker_dest.setLatLng([lon_dest, lat_dest]).addTo(map);
-  // L.marker([lat_dest,lon_dest], {icon: icone_dest}).addTo(map);
+  marker_dest.setLatLng([lat_dest, lon_dest]).addTo(map);
   // Need to send those variables to python app.py
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
     // Add fetch to send it to flask app

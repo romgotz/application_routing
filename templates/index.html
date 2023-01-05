@@ -18,16 +18,16 @@
             <div class="input-group mb-3">
                 <!-- Prepend, what is in front (image of marker) -->
                 <div class="input-group-prepend">
-                    <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dep.svg" width="45" height="20"> </span>
+                    <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dep.svg" width="45" height="18"> </span>
                 </div>
                 <!-- Geosearcher text box from Leaflet Geosearch-->
                 <form id="geosearch-depart">
-                    <input type="text" placeholder="Adresse de départ (Ou clique sur carte/bouton)" value="">
+                    <input type="text" placeholder="Départ (Ou clique sur carte/bouton)" value="" size="30">
                 </form>
                 <!-- Append, what is after text box ; button to get localisation (image of localisation) -->
                 <div class="input-group-append">
-                    <button id="btnGetLocStart" formmethod="post" class="btn btn-outline-secondary current-location"  type="button" title="Centrer sur votre position">
-                    <img src="/static/img/current-location.svg" width="18" height="18">
+                    <button id="btnGetLocStart" formmethod="post" class="btn btn-outline-secondary current-location" type="button" title="Centrer sur votre position" height="30">
+                    <img src="/static/img/current-location.svg" width="15" height="15">
                     </button>
                 </div>
             </div> <!-- End start button -->
@@ -41,7 +41,7 @@
                 </div>
                 <!-- Geosearcher text box from Leaflet Geosearch-->
                 <form id="geosearch-destination">
-                    <input type="text" placeholder="Destination (Ou clique sur carte/boutton)" value="" size="30" height="35">
+                    <input type="text" placeholder="Destination (Ou clique sur carte/bouton)" value="" size="30">
                 </form>
                 <!-- Append, what is after text box ; button of get localisation (image of localisation) -->
                 <div class="input-group-append">
