@@ -201,13 +201,11 @@ info.onAdd = function (map) {
 function onLocationFound(e) {
   // Add marker at click button and get lat/lng
   if (button_id==='btnGetLocStart') {
-    // marker_dep = L.marker(e.latlng, {icon:icone_depart}, {draggable: true}).addTo(map);
     marker_dep.setLatLng(e.latlng).addTo(map);
     lat_dep = e.latlng.lat;
     lon_dep = e.latlng.lng;
 
   } else if (button_id==='btnGetLocDest') { // add marker for destination
-    // marker_dest = L.marker(e.latlng, {icon:icone_dest}, {draggable: true}).addTo(map);
     marker_dest.setLatLng(e.latlng).addTo(map);
     lat_dest = e.latlng.lat;
     lon_dest = e.latlng.lng;
@@ -226,7 +224,8 @@ function onLocationFound(e) {
       "lon_dest" : lon_dest,
       "lat_dest" : lat_dest, 
       "Settings": enabledSettings
-    })
+      }) // end stringify
+    }) // end fetch
     .then(function (response){
       if(response.ok) {
           response.json()
@@ -251,13 +250,11 @@ function onLocationFound(e) {
       else {
           throw Error('Something went wrong');
       }
-      })
+    })
     .catch(function(error) {
       console.log(error);
       })
-    }) // end of fetch for dest
-  } else {
-  } // End of if for fetch
+  } 
 
 }; // end of location found
 
@@ -296,8 +293,8 @@ function onMapClick(e) {
   "lon_dest" : lon_dest,
   "lat_dest" : lat_dest,
   "Settings": enabledSettings
-  })
-  })
+  }) // end stringify
+  }) // end fetch
   .then(function (response){
     if(response.ok) {
         response.json()
@@ -352,14 +349,11 @@ legend.onAdd = function (map) {
         div.innerHTML +=
             '<i style="background:' + getColor_CQ(cq_breaks[i]+0.01) + '"></i> ' +
             labels[i] + '<br>';
-            //grades[i] + (" <img src="+ labels[i] +" height='50' width='50'>") +'<br>';
     }
 
     return div;
 };
 
-// Add reset function on button click 
-// resetEvnt.addEventListener("click", reset());
 
 // 4. Interactivity about gelocalisation 
 
@@ -368,12 +362,12 @@ legend.onAdd = function (map) {
 // Deal with the click on localisation button event 
 // For start 
 L.DomEvent.on(document.getElementById('btnGetLocStart'), 'click', function(){
-  map.locate({setView: true, maxZoom: 16});
+  map.locate({setView: true, maxZoom: 14});
   button_id = this.id; // define button_id to know if clicked to determine start or destination
 });
 // For destination
 L.DomEvent.on(document.getElementById('btnGetLocDest'), 'click', function(){
-  map.locate({setView: true, maxZoom: 16});
+  map.locate();
   button_id = this.id; // define button_id to know if clicked to determine start or destination
 });
 // Add it to the map
