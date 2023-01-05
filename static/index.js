@@ -112,15 +112,27 @@ function reset() {
   // Reset the map view to begining
   map.setView([46.5196535, 6.6322734], 13); 
 }
-// Get color function for coloring of path in leaflet 
-function getColor(d) {
+// Get color function for coloring of path according to Cycling Quality in leaflet 
+function getColor_CQ(d) {
   /* Return color according to the class. The color palette comes from colorbrewer
   https://colorbrewer2.org/?type=diverging&scheme=RdYlBu&n=5 */
-  return  d > 1.3 ? '#d7191c' :
-          d > 1.1 ? '#fdae61' :
-          d > 0.95 ? '#ffffbf' :
-          d > 0.75 ? '#abd9e9' :
-          '#2c7bb6';
+  return  d > 2 ? '#d73027' :
+          d > 1.5 ? '#f46d43' :
+          d > 1.2 ? '#fdae61' :
+          d > 1 ? '#ffffbf' :
+          d > 0.8 ? '#74add1' :
+          '#313695';
+  }
+// Get color function for coloring of path according to C IC in leaflet 
+function getColor_C_IC(d) {
+  /* Return color according to the class. The color palette comes from colorbrewer
+  https://colorbrewer2.org/?type=diverging&scheme=RdYlBu&n=5 */
+  return  d > 2 ? '#d73027' :
+          d > 1.5 ? '#f46d43' :
+          d > 1.2 ? '#fdae61' :
+          d > 1 ? '#ffffbf' :
+          d > 0.8 ? '#74add1' :
+          '#313695';
   }
 // Style function to call in L.geojson to line colored according to a 
 function style(feature) {
@@ -128,7 +140,7 @@ function style(feature) {
   Function called in L.geojson with parameters style:style ; colors the features in gejson according to their value  ;for now the value is fixed with TC_DWV = Cycling quality with taking into account trafic = DWV (mean trafic for monday-friday)
   */
   return {
-      color: getColor(feature.properties.TC_DWV),
+      color: getColor_CQ(feature.properties.TC_DWV),
       fillOpacity: 1,
       weight: 5,
       opacity: 1
