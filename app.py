@@ -24,17 +24,15 @@ app.debug = True
 
 # 1. Download local data and prepare it 
 # Edges file to build the graph 
-dir_edges_list = gpd.read_file(r'static/data/edgelist_network.shp', encoding='utf-8')
+dir_edges_list = gpd.read_file(r'static/data/edgelist_network_epsg_32632.shp', encoding='utf-8')
 # Nodes file to build the graph 
-nodes = gpd.read_file(r'static/data/osm_nodes_epsg32632.shp', encoding='utf-8')
-nodes_epsg3857_xy = pd.read_csv(r'static/data/nodes_xy_epsg3857.csv', sep=";", encoding='utf-8')
+nodes = gpd.read_file(r'static/data/nodes_network_epsg32632.shp', encoding='utf-8')
 # Intersection cost file for the shortest path algorithm
 cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='utf-8', sep=';')
 # Lausanne boundaries
 boundaries_lausanne_epsg4326 =  gpd.read_file(r'static/data/limite_lausanne_epsg4326.shp', encoding='utf-8')
 
 # Remove uncessary column
-nodes_epsg3857_xy.drop(columns=['Unnamed: 0'], inplace=True)
 # Change some columns types. u/v columns are stored as float values, but need to be integers 
 # Round float values 
 dir_edges_list['u'] = dir_edges_list['u'].round()
@@ -47,8 +45,6 @@ dir_edges_list[cols] = dir_edges_list[cols].applymap(np.int64)
 # same for nodes osmid
 nodes['osmid']  = nodes['osmid'].round()
 nodes[['osmid']] = nodes[['osmid']].applymap(np.int64)
-# Remove some unecessary columns
-nodes.drop(columns=['field_1', 'Unnamed_ 0'], inplace=True)
 
 # Create nodes and edges df with different crs
 # epsg:4326 to match leaflet crs
@@ -59,15 +55,11 @@ nodes_epsg4326 = nodes.to_crs(epsg=4326)
 dir_edges_list_epsg3857 = dir_edges_list.to_crs(epsg=3857)
 nodes_epsg3857 = nodes.to_crs(epsg=3857)
 
-# Change column for intersection df 
-cost_intersection['id_in'].fillna(0, inplace=True) # Fill nan with 0, otherwise error raised
-cost_intersection['id_in'] = cost_intersection['id_in'].round()
-cost_intersection[['id_in']] = cost_intersection[['id_in']].applymap(np.int64)
-# Put all costs into one column
-cost_intersection['cost_movement'] = cost_intersection['Cost_unsignalized']
-cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'] = cost_intersection['Cost_signalized']
-cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'] = cost_intersection['cost_mini_roundabout']
-cost_intersection.loc[cost_intersection['cost_movement'].isna(), 'cost_movement'] = 0
+# Create nodes_xy df for kd_tree
+# Update x,y coords with 
+nodes_epsg3857['x'] = nodes_epsg3857['geometry'].x
+nodes_epsg3857['y'] = nodes_epsg3857['geometry'].y
+nodes_epsg3857_xy = nodes_epsg3857[['x','y']]
 
 
 def construct_kdTree(nodes_xy):
