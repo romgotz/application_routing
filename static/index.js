@@ -106,8 +106,6 @@ function reset() {
   input_dep.value="" // empty string as value
   input_dest.disabled = false;
   input_dest.value="" 
-  document.getElementById("HP_soir").checked = false;
-  document.getElementById("HP_matin").checked = false;
   document.getElementById("intersections").checked = false;
   document.getElementById("pente").checked = true;
   enabledSettings = ['pente']
@@ -458,18 +456,6 @@ input_dest.addEventListener('submit', async (event) => {
 // Use Array.forEach to add an event listener to each checkbox.
 checkboxes.forEach(function(checkbox) {
   checkbox.addEventListener('change', function() {
-    // Can t check HP_matin et HP_soir at the same time, so disable if one is checked
-    if(checkbox.id == 'HP_matin' && checkbox.checked) {
-      document.getElementById("HP_soir").disabled = true;
-    } else if (checkbox.id == 'HP_soir' && checkbox.checked) {
-      document.getElementById("HP_matin").disabled = true;
-    }
-    // If checkbox is false again, need to change disabled again
-    if(checkbox.id == 'HP_matin' &! checkbox.checked) {
-      document.getElementById("HP_soir").disabled = false;
-    } else if (checkbox.id == 'HP_soir' &! checkbox.checked) {
-      document.getElementById("HP_matin").disabled = false;
-    }
     enabledSettings = 
       Array.from(checkboxes) // Convert checkboxes to an array to use filter and map.
       .filter(i => i.checked) // Use Array.filter to remove unchecked checkboxes.
