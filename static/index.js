@@ -79,13 +79,79 @@ const form_dest = document.getElementById("geosearch-destination");
 var input_dest = form_dest.querySelector('input[type="text"]');
 
 // Selection 
-// const resetEvnt = document.getElementById("resetBtn");
 // Select all checkboxes 
 const checkboxes = document.querySelectorAll("input[type=checkbox][name=settings]");
 // Default settings for the checkboxes
 let enabledSettings = ['pente']; // defines it with default settings
 
 // 2. Define functions about events from interactions
+// Deal with invert latlng button 
+function invertLatLng() {
+  // Make sure that start and destination are defined and path is already added
+  if (lat_dep && lat_dest && lon_dep && lon_dest && geojson_path) {
+  // Remove markers
+  map.removeLayer(marker_dep);
+  map.removeLayer(marker_dest);
+  // Remove the geojson layers for the path 
+  map.removeLayer(geojson_path)
+  map.removeLayer(geojson_bound)
+  // Invert lat/lng
+  lat = lat_dep; 
+  lon = lon_dep;
+  lat_dep = lat_dest;
+  lon_dep = lon_dest;
+  lat_dest = lat;
+  lon_dest = lon;
+  // Invert the markers 
+  marker_dep.setLatLng([lat_dep, lon_dep]).addTo(map);
+  marker_dest.setLatLng([lat_dest, lon_dest]).addTo(map);
+  // fetch those data to app.py
+  console.log("All lat/lon exist, sending them to flask using fetch")
+  fetch('/', {
+    headers : {
+        'Content-Type' : 'application/json'
+    },
+    method : 'POST',
+    body : JSON.stringify( {
+    "lat_dep": lat_dep,
+    "lon_dep" : lon_dep,
+    "lon_dest" : lon_dest,
+    "lat_dest" : lat_dest, 
+    "Settings": enabledSettings
+    }) // end stringify
+  }) // end fetch
+  .then(function (response){
+    if(response.ok) {
+        response.json()
+        .then(function(response) {
+          console.log(response)
+            // Add path two times for better visibility
+            geojson_bound = L.geoJson(response, {
+              color: 'black',
+              weight: 10
+          }).addTo(map)
+            // Add path as geojson layer 
+            geojson_path = L.geoJson(response, {
+              style: style,
+              onEachFeature: onEachFeature
+          }).addTo(map)
+          // Fit the leaflet map to the path 
+          map.fitBounds(geojson_path.getBounds());
+          // Add the legend to the map
+          legend.addTo(map);
+          }); // End then 
+    }
+    else {
+        throw Error('Something went wrong');
+    }
+  })
+  .catch(function(error) {
+    console.log(error);
+    })
+} else {
+    alert("Impossible d'inverser, le point de départ et de destination n'ont pas été encore définis")
+  } 
+}; // end invert lat/lng button
 // Deal with reset btn event
 function reset() {
   // Reset all lat/lon values to false and click to 0

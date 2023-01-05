@@ -31,8 +31,14 @@
                     </button>
                 </div>
             </div> <!-- End start button -->
-            <br>
 
+            <!-- Add a button to invert lat/lon. The function is defined in js file   -->
+            <div class="horizontal-center">
+                <button id="invertBtn"  type="button" title="Inverser départ et destination" onclick=invertLatLng()>
+                    <img src="/static/img/reverse_icone.svg" width="30" height="30">
+                </button>
+            </div>    
+            <br>
             <!-- Destination button -->
             <div class="input-group mb-3"> 
                 <!-- Prepend, what is in front (image of marker) -->
@@ -52,9 +58,11 @@
             </div> <!-- End of destination button -->
 
             <!-- Add a reset button for lat/lon/path. the function is defined in js file   -->
-            <button id="resetBtn"  type="button" title="Remettre à zéro l'application" onclick=reset()>
+            <div class="horizontal-center">
+                <button id="resetBtn"  type="button" title="Remettre à zéro l'application" onclick=reset()>
                 Recommencer
-            </button>
+                </button>
+            </div>
             <br>
 
             <!-- Checkboxes to personalize routing data-->

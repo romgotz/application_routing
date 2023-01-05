@@ -1,3 +1,10 @@
+.horizontal-center {
+  margin: 0px;
+  position: absolute;
+  left: 50%;
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
+}
 
 body {
 padding: 5px;
