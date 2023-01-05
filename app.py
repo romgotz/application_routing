@@ -24,7 +24,7 @@ app.debug = True
 
 # 1. Download local data and prepare it 
 # Edges file to build the graph 
-dir_edges_list = gpd.read_file(r'static/data/edgelist_network_epsg_32632.shp', encoding='utf-8')
+dir_edges_list = gpd.read_file(r'static/data/edgelist_network_epsg32632.shp', encoding='utf-8')
 # Nodes file to build the graph 
 nodes = gpd.read_file(r'static/data/nodes_network_epsg32632.shp', encoding='utf-8')
 # Intersection cost file for the shortest path algorithm

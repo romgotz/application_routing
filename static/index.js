@@ -54,9 +54,9 @@ const baseLayers = {
 };
 
 // Variables for leaflet map
-var info = L.control(); // tooltip containing info 
-// var info = L.tooltip();
 var map = L.map('map'); // contains leaflet map
+var legend = L.control({position: 'topright'}); // contains the legend
+var info = L.control({position: 'topleft'}); // tooltip containing info 
 
 
 // Variables for the geosearching adresse toolbar
@@ -97,9 +97,10 @@ function reset() {
   // Remove markers
   map.removeLayer(marker_dep);
   map.removeLayer(marker_dest);
-  // Remove the geojson layer
-  if (geojson) {
-    map.removeLayer(geojson)
+  // Remove the geojson layers for the path 
+  if (geojson_path) {
+    map.removeLayer(geojson_path)
+    map.removeLayer(geojson_bound)
   };
   // Reset all forms and checkboxes to default values
   input_dep.disabled = false;
@@ -127,12 +128,12 @@ function getColor_CQ(d) {
 function getColor_C_IC(d) {
   /* Return color according to the class. The color palette comes from colorbrewer
   https://colorbrewer2.org/?type=diverging&scheme=RdYlBu&n=5 */
-  return  d > 2 ? '#d73027' :
-          d > 1.5 ? '#f46d43' :
-          d > 1.2 ? '#fdae61' :
-          d > 1 ? '#ffffbf' :
-          d > 0.8 ? '#74add1' :
-          '#313695';
+  return  d > 1.5 ? '#d73027' : // > 1.5 
+          d > 1.3 ? '#f46d43' : // 1.3 - 1.5
+          d > 1.1 ? '#fdae61' : // 1.1 - 1.3
+          d > 1 ? '#ffffe7' : // 1 - 1.1
+          d > 0.9 ? '#74add1' : // 0.9 - 1
+          '#313695'; // 0.75 - 0.9
   }
 // Style function to call in L.geojson to line colored according to a 
 function style(feature) {
@@ -160,9 +161,9 @@ function highlightFeature(e) {
 
 function resetHighlight(e) {
   /*
-  Reset the info when mouse in not on the features of geojson layer
+  Reset the info when mouse is not on the features of geojson layer
   */
-  geojson.resetStyle(e.target);
+  geojson_path.resetStyle(e.target);
   info.update();
 }
 
@@ -183,7 +184,7 @@ info.update = function (props) {
   Get information to display in the info tooltip  
   */ 
   this._div.innerHTML = '<h4> Info sur le trajet </h4>' +  (props ?
-      '<b> Nom : ' + props.name + '</b><br /> Qualité cyclable :' + props.TC_DWV + '<br /> Pente : ' + props.grade*100 + ' %' + '<br> Trafic :' + props.DWV_ALLE + '[véh./jour] <br> Aménagement cyclable : ' + props.Am_cycl
+      '<b> Nom : ' + props.name + '</b><br /> Qualité cyclable :' + props.TC_DWV + '<br /> Pente : ' + (props.grade*100).toFixed(2) + ' %' + '<br> Trafic :' + props.DWV_ALLE.toFixed(2) + '[véh./jour] <br> Aménagement cyclable : ' + props.Am_cycl
       : 'Hover sur le trajet proposé');
 };
 info.onAdd = function (map) {
@@ -231,15 +232,21 @@ function onLocationFound(e) {
           response.json()
           .then(function(response) {
             console.log(response)
+              // Add path two times for better visibility
+              geojson_bound = L.geoJson(response, {
+                color: 'black',
+                weight: 10
+            }).addTo(map)
               // Add path as geojson layer 
-              geojson = L.geoJson(response, {
+              geojson_path = L.geoJson(response, {
                 style: style,
                 onEachFeature: onEachFeature
             }).addTo(map)
             // Fit the leaflet map to the path 
-            map.fitBounds(geojson.getBounds())
-            console.log(geojson)
-            });
+            map.fitBounds(geojson_path.getBounds());
+            // Add the legend to the map
+            legend.addTo(map);
+            }); // End then 
       }
       else {
           throw Error('Something went wrong');
@@ -295,13 +302,19 @@ function onMapClick(e) {
     if(response.ok) {
         response.json()
         .then(function(response) {
-          // data = TC_DWV
-          geojson = L.geoJson(response, {
+          // Add path two times for better visibility
+          geojson_bound = L.geoJson(response, {
+            color: 'black',
+            weight: 10
+        }).addTo(map)
+          geojson_path = L.geoJson(response, {
             style: style,
             onEachFeature: onEachFeature
         }).addTo(map)
         // Fit the map to the path 
-        map.fitBounds(geojson.getBounds())
+        map.fitBounds(geojson_path.getBounds());
+        // Add the legend to the map
+        legend.addTo(map);
         }) // End of then 
       } // end if
 
@@ -326,6 +339,25 @@ OpenStreetMap_CH.addTo(map)
 L.control.layers(baseLayers).addTo(map);
 // Add the tooltip info 
 info.addTo(map);
+
+// Add legend about cycling quality class
+
+legend.onAdd = function (map) {
+
+    var div = L.DomUtil.create('div', 'info legend'),
+        cq_breaks = [0.5, 0.8, 1, 1.2, 1.5, 2],
+        labels = ['Très bonne', 'Bonne', 'Acceptable', 'Mauvaise', 'Très mauvaise', 'Extrêmement mauvaise'];
+
+    // loop through our density intervals and generate a label with a colored square for each interval
+    for (var i = 0; i < cq_breaks.length; i++) {
+        div.innerHTML +=
+            '<i style="background:' + getColor_CQ(cq_breaks[i]+0.01) + '"></i> ' +
+            labels[i] + '<br>';
+            //grades[i] + (" <img src="+ labels[i] +" height='50' width='50'>") +'<br>';
+    }
+
+    return div;
+};
 
 // Add reset function on button click 
 // resetEvnt.addEventListener("click", reset());
@@ -360,6 +392,14 @@ form_dep.addEventListener('submit', async (event) => {
   lon_dep = results_dep[0]['x'];// lon
   lat_dep = results_dep[0]['y']; // lat
   adresse = results_dep[0]['label'] // adresse 
+  console.log(typeof(adresse))
+  console.log(adresse)
+  adresse = adresse.replace(', Plateforme 10', '');
+  adresse = adresse.replace(", District de Lausanne", "");
+  adresse = adresse.replace(", Suisse", "");
+  adresse = adresse.replace(", Vaud", "");
+  console.log("After removing unecessary element of adress", adresse)
+
   // Changing the text value in the form in html
   input_dep.value = adresse
   // Put a marker on the adresse
@@ -384,14 +424,20 @@ form_dep.addEventListener('submit', async (event) => {
       if(response.ok) {
           response.json()
           .then(function(response) {
-              console.log("The sending of the data from python file works")
+            // Add path two times to have a black border to increase readability
+            geojson_bound = L.geoJson(response, {
+              color: 'black',
+              weight: 10
+          }).addTo(map)
               // Add path as geojson layer 
-              geojson = L.geoJson(response, {
+              geojson_path = L.geoJson(response, {
                 style: style,
                 onEachFeature: onEachFeature
             }).addTo(map)
             // Fit map to the path 
-            map.fitBounds(geojson.getBounds())
+            map.fitBounds(geojson_path.getBounds());
+            // Add the legend to the map
+            legend.addTo(map);
           });
       }
       else {
@@ -408,8 +454,9 @@ form_dep.addEventListener('submit', async (event) => {
 
 // For destination
 input_dest.addEventListener('submit', async (event) => {
+  console.log("Getting in the AddEventListener for the destination")
   if (lat_dest && lon_dest) {
-    alert("Vous avez déjà déterminé la destination. Voulez-vous définir une nouvelle destination ?")
+    alert("Vous avez déjà déterminé la destination. Si vous voulez recommencer, appuyer sur le bouton correspondant")
     return 
   };
   event.preventDefault();
@@ -417,10 +464,12 @@ input_dest.addEventListener('submit', async (event) => {
   lon_dest = results_dest[0]['x']; // take the first result (if many results)
   lat_dest = results_dest[0]['y']; // take the first result (if many results)
   // Add marker to the map
-  adresse = results_dest[0]['label'] // adresse 
+  adresse = results_dest[0]['label'] // adresse
+  console.log(adresse) 
   // Changing the text value in the form in html
   input_dest.value = adresse
 
+  // Adding marker 
   marker_dest.setLatLng([lon_dest, lat_dest]).addTo(map);
   // L.marker([lat_dest,lon_dest], {icon: icone_dest}).addTo(map);
   // Need to send those variables to python app.py
@@ -443,14 +492,20 @@ input_dest.addEventListener('submit', async (event) => {
       if(response.ok) {
           response.json()
           .then(function(response) {
-              console.log("The sending of the data from python file works")
+            // Add path two times
+            geojson_bound = L.geoJson(response, {
+              color: 'black',
+              weight: 10
+          }).addTo(map)
               // Add path as geojson layer 
-              geojson = L.geoJson(response, {
+              geojson_path = L.geoJson(response, {
                 style: style,
                 onEachFeature: onEachFeature
             }).addTo(map)
             // Fit map to the path 
-            map.fitBounds(geojson.getBounds())
+            map.fitBounds(geojson_path.getBounds());
+            // Add the legend to the map
+            legend.addTo(map);
           });
       }
       else {
