@@ -291,7 +291,7 @@ def get_itineraries():
 
         # Determine the edges corresponding to the nodes in the path
         # Define a df that will receive the edges and necessary data 
-        params_to_keep = ['u', 'v','oneway','name', 'grade', 'Am_cycl', 'DWV_ALLE', pd_col, tc_col, 'geometry']
+        params_to_keep = ['u', 'v','oneway','name', 'grade', 'Am_cycl', 'DWV_ALLE','TC_DWV', 'PD_DWV', 'TC_noGR', 'PD_noGR', 'geometry']
         # Take the edges from df with crs = epsg:4326 to match leaflet 
         edges_df = dir_edges_list_epsg4326[params_to_keep]
         edges_df = edges_df.drop(edges_df.index[:])

@@ -9,7 +9,7 @@ lon_dest = false;
 // Click variable to count click on leaflet map. To make sure we have 2 clicks that are start/destination 
 var click = 0;
 // Variable to receive geojson layer containing path from algo routing (coming from app.py) 
-var geojson = false;
+var geojson_path, geojson_bound = false;
 // Define icons for start/destination markers with some parameters
 const icone_depart = L.icon({
   iconUrl: 'static/img/marker_dep.svg',
@@ -83,8 +83,33 @@ var input_dest = form_dest.querySelector('input[type="text"]');
 const checkboxes = document.querySelectorAll("input[type=checkbox][name=settings]");
 // Default settings for the checkboxes
 let enabledSettings = ['pente']; // defines it with default settings
+let cost_col = 'TC_DWV'; 
 
 // 2. Define functions about events from interactions
+function getPath(response){
+  if(response.ok) {
+      response.json()
+      .then(function(response) {
+          // Add path two times for better visibility
+          geojson_bound = L.geoJson(response, {
+            color: 'black',
+            weight: 10
+        }).addTo(map)
+          // Add path as geojson layer 
+          geojson_path = L.geoJson(response, {
+            style: style,
+            onEachFeature: onEachFeature
+        }).addTo(map)
+        // Fit the leaflet map to the path 
+        map.fitBounds(geojson_path.getBounds());
+        // Add the legend to the map
+        legend.addTo(map);
+        }); // End then 
+  }
+  else {
+      throw Error('Something went wrong');
+  }
+};
 // Deal with invert latlng button 
 function invertLatLng() {
   // Make sure that start and destination are defined and path is already added
@@ -106,7 +131,6 @@ function invertLatLng() {
   marker_dep.setLatLng([lat_dep, lon_dep]).addTo(map);
   marker_dest.setLatLng([lat_dest, lon_dest]).addTo(map);
   // fetch those data to app.py
-  console.log("All lat/lon exist, sending them to flask using fetch")
   fetch('/', {
     headers : {
         'Content-Type' : 'application/json'
@@ -120,31 +144,7 @@ function invertLatLng() {
     "Settings": enabledSettings
     }) // end stringify
   }) // end fetch
-  .then(function (response){
-    if(response.ok) {
-        response.json()
-        .then(function(response) {
-          console.log(response)
-            // Add path two times for better visibility
-            geojson_bound = L.geoJson(response, {
-              color: 'black',
-              weight: 10
-          }).addTo(map)
-            // Add path as geojson layer 
-            geojson_path = L.geoJson(response, {
-              style: style,
-              onEachFeature: onEachFeature
-          }).addTo(map)
-          // Fit the leaflet map to the path 
-          map.fitBounds(geojson_path.getBounds());
-          // Add the legend to the map
-          legend.addTo(map);
-          }); // End then 
-    }
-    else {
-        throw Error('Something went wrong');
-    }
-  })
+  .then(getPath)
   .catch(function(error) {
     console.log(error);
     })
@@ -179,6 +179,7 @@ function reset() {
   // Reset the map view to begining
   map.setView([46.5196535, 6.6322734], 13); 
 }
+
 // Get color function for coloring of path according to Cycling Quality in leaflet 
 function getColor_CQ(d) {
   /* Return color according to the class. The color palette comes from colorbrewer
@@ -206,12 +207,21 @@ function style(feature) {
   /*
   Function called in L.geojson with parameters style:style ; colors the features in gejson according to their value  ;for now the value is fixed with TC_DWV = Cycling quality with taking into account trafic = DWV (mean trafic for monday-friday)
   */
+ if (cost_col == 'TC_DWV'){
   return {
       color: getColor_CQ(feature.properties.TC_DWV),
       fillOpacity: 1,
       weight: 5,
       opacity: 1
   };
+} else if (cost_col == 'TC_noGR') {
+  return {
+    color: getColor_CQ(feature.properties.TC_noGR),
+    fillOpacity: 1,
+    weight: 5,
+    opacity: 1
+};
+}
 }
 
 function highlightFeature(e) {
@@ -249,9 +259,15 @@ info.update = function (props) {
   /*
   Get information to display in the info tooltip  
   */ 
+ if (cost_col === 'TC_DWV'){
   this._div.innerHTML = '<h4> Info sur le trajet </h4>' +  (props ?
-      '<b> Nom : ' + props.name + '</b><br /> Qualité cyclable :' + (props.TC_DWV).toFixed(2) + '<br /> Pente : ' + (props.grade*100).toFixed(2) + ' %' + '<br> Trafic :' + (props.DWV_ALLE).toFixed(2) + '[véh./jour] <br> Aménagement cyclable : ' + props.Am_cycl
-      : 'Hover sur le trajet proposé');
+      '<b> Nom : ' + props.name + '</b><br /> Qualité cyclable :' + (props.TC_DWV).toFixed(2) + '<br /> Pente : ' + (props.grade*100).toFixed(2) + ' %' + '<br> Trafic :' + (props.DWV_ALLE).toFixed(0) + ' [véh./jour] <br> Aménagement cyclable : ' + props.Am_cycl
+      : 'Passer la souris sur le trajet proposé');
+  } else if (cost_col='TC_noGR') {
+    this._div.innerHTML = '<h4> Info sur le trajet </h4>' +  (props ?
+      '<b> Nom : ' + props.name + '</b><br /> Qualité cyclable :' + (props.TC_noGR).toFixed(2) + '<br /> Pente : ' + (props.grade*100).toFixed(2) + ' %' + '<br> Trafic :' + (props.DWV_ALLE).toFixed(0) + ' [véh./jour] <br> Aménagement cyclable : ' + props.Am_cycl
+      : 'Passer la souris sur le trajet proposé');
+  } 
 };
 info.onAdd = function (map) {
   /*
@@ -278,7 +294,6 @@ function onLocationFound(e) {
   } ; // end else
   // If 4 lat/lon exists, then send it to python using fetch
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
-    console.log("All lat/lon exist, sending them to flask using fetch")
     fetch('/', {
       headers : {
           'Content-Type' : 'application/json'
@@ -292,31 +307,7 @@ function onLocationFound(e) {
       "Settings": enabledSettings
       }) // end stringify
     }) // end fetch
-    .then(function (response){
-      if(response.ok) {
-          response.json()
-          .then(function(response) {
-            console.log(response)
-              // Add path two times for better visibility
-              geojson_bound = L.geoJson(response, {
-                color: 'black',
-                weight: 10
-            }).addTo(map)
-              // Add path as geojson layer 
-              geojson_path = L.geoJson(response, {
-                style: style,
-                onEachFeature: onEachFeature
-            }).addTo(map)
-            // Fit the leaflet map to the path 
-            map.fitBounds(geojson_path.getBounds());
-            // Add the legend to the map
-            legend.addTo(map);
-            }); // End then 
-      }
-      else {
-          throw Error('Something went wrong');
-      }
-    })
+    .then(getPath)
     .catch(function(error) {
       console.log(error);
       })
@@ -361,30 +352,7 @@ function onMapClick(e) {
   "Settings": enabledSettings
   }) // end stringify
   }) // end fetch
-  .then(function (response){
-    if(response.ok) {
-        response.json()
-        .then(function(response) {
-          // Add path two times for better visibility
-          geojson_bound = L.geoJson(response, {
-            color: 'black',
-            weight: 10
-        }).addTo(map)
-          geojson_path = L.geoJson(response, {
-            style: style,
-            onEachFeature: onEachFeature
-        }).addTo(map)
-        // Fit the map to the path 
-        map.fitBounds(geojson_path.getBounds());
-        // Add the legend to the map
-        legend.addTo(map);
-        }) // End of then 
-      } // end if
-
-    else {
-        throw Error('Something went wrong');
-    }
-    })
+  .then(getPath)
   .catch(function(error) {
     console.log(error);
     })
@@ -450,7 +418,6 @@ form_dep.addEventListener('submit', async (event) => {
   lon_dep = results_dep[0]['x'];// lon
   lat_dep = results_dep[0]['y']; // lat
   adresse = results_dep[0]['label'] // adresse 
-  console.log(typeof(adresse))
   adresse = adresse.replace(', Plateforme 10', '');
   adresse = adresse.replace(", District de Lausanne", "");
   adresse = adresse.replace(", Suisse", "");
@@ -475,30 +442,7 @@ form_dep.addEventListener('submit', async (event) => {
     "Settings": enabledSettings
     })
     })
-    .then(function (response){
-      if(response.ok) {
-          response.json()
-          .then(function(response) {
-            // Add path two times to have a black border to increase readability
-            geojson_bound = L.geoJson(response, {
-              color: 'black',
-              weight: 10
-          }).addTo(map)
-              // Add path as geojson layer 
-              geojson_path = L.geoJson(response, {
-                style: style,
-                onEachFeature: onEachFeature
-            }).addTo(map)
-            // Fit map to the path 
-            map.fitBounds(geojson_path.getBounds());
-            // Add the legend to the map
-            legend.addTo(map);
-          });
-      }
-      else {
-          throw Error('Something went wrong');
-      }
-      })
+    .then(getPath)
     .catch(function(error) {
       console.log(error);
       })
@@ -541,30 +485,7 @@ form_dest.addEventListener('submit', async (event) => {
     "Settings": enabledSettings
     })
     })
-    .then(function (response){
-      if(response.ok) {
-          response.json()
-          .then(function(response) {
-            // Add path two times
-            geojson_bound = L.geoJson(response, {
-              color: 'black',
-              weight: 10
-          }).addTo(map)
-              // Add path as geojson layer 
-              geojson_path = L.geoJson(response, {
-                style: style,
-                onEachFeature: onEachFeature
-            }).addTo(map)
-            // Fit map to the path 
-            map.fitBounds(geojson_path.getBounds());
-            // Add the legend to the map
-            legend.addTo(map);
-          });
-      }
-      else {
-          throw Error('Something went wrong');
-      }
-      })
+    .then(getPath)
     .catch(function(error) {
       console.log(error);
       })
@@ -573,13 +494,59 @@ form_dest.addEventListener('submit', async (event) => {
 });
 
 // 5. Interactivity with the checkboxes to define settings
-// Use Array.forEach to add an event listener to each checkbox.
+// Use Array.forEach to add an event listener to each checkbox. If settings change, a new path is calculated with the new settings 
 checkboxes.forEach(function(checkbox) {
   checkbox.addEventListener('change', function() {
     enabledSettings = 
       Array.from(checkboxes) // Convert checkboxes to an array to use filter and map.
       .filter(i => i.checked) // Use Array.filter to remove unchecked checkboxes.
       .map(i => i.value) // Use Array.map to extract only the checkbox values from the array of objects.
-    console.log("checkboxes value", enabledSettings)
+    // Remove existing paths
+    if (geojson_path) {
+      map.removeLayer(geojson_path)
+      map.removeLayer(geojson_bound)
+    };
+    if (enabledSettings.includes('pente')){
+      cost_col = 'TC_DWV'
+          // Add fetch to send it to flask app
+    fetch('/', {
+      headers : {
+          'Content-Type' : 'application/json'
+      },
+      method : 'POST',
+      body : JSON.stringify( {
+      "lon_dep" : lon_dep,
+      "lat_dep" : lat_dep,
+      "lon_dest" : lon_dest,
+      "lat_dest" : lat_dest, 
+      "Settings": enabledSettings
+      })
+      })
+      .then(getPath)
+      .catch(function(error) {
+        console.log(error);
+        })
+
+    } else {
+      cost_col = 'TC_noGR'
+          // Add fetch to send it to flask app
+    fetch('/', {
+      headers : {
+          'Content-Type' : 'application/json'
+      },
+      method : 'POST',
+      body : JSON.stringify( {
+      "lon_dep" : lon_dep,
+      "lat_dep" : lat_dep,
+      "lon_dest" : lon_dest,
+      "lat_dest" : lat_dest, 
+      "Settings": enabledSettings
+      })
+      })
+      .then(getPath)
+      .catch(function(error) {
+        console.log(error);
+        })
+    }
   }) // End AddEventListener 
 });
