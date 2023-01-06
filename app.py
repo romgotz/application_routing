@@ -32,8 +32,7 @@ cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='
 # Lausanne boundaries
 boundaries_lausanne_epsg4326 =  gpd.read_file(r'static/data/limite_lausanne_epsg4326.shp', encoding='utf-8')
 
-print(cost_intersection['C_movement'])
-print("dir_edges list columns names\n", dir_edges_list.columns.values.tolist())
+cost_intersection = cost_intersection.loc[cost_intersection['C_movement'] > 0]
 
 # Remove uncessary column
 # Change some columns types. u/v columns are stored as float values, but need to be integers 
@@ -291,7 +290,7 @@ def get_itineraries():
 
         # Determine the edges corresponding to the nodes in the path
         # Define a df that will receive the edges and necessary data 
-        params_to_keep = ['u', 'v','oneway','name', 'grade', 'Am_cycl', 'DWV_ALLE','TC_DWV', 'PD_DWV', 'TC_noGR', 'PD_noGR', 'geometry']
+        params_to_keep = ['u', 'v','oneway','name', 'grade', 'Am_cycl', 'DWV_ALLE','C_IC_DWV', 'TC_DWV', 'PD_DWV', 'TC_noGR', 'PD_noGR', 'geometry']
         # Take the edges from df with crs = epsg:4326 to match leaflet 
         edges_df = dir_edges_list_epsg4326[params_to_keep]
         edges_df = edges_df.drop(edges_df.index[:])

@@ -80,7 +80,10 @@ var input_dest = form_dest.querySelector('input[type="text"]');
 
 // Selection 
 // Select all checkboxes 
-const checkboxes = document.querySelectorAll("input[type=checkbox][name=settings]");
+const checkboxes_routing = document.querySelectorAll("input[type=checkbox][name=settings]");
+const checkboxes_coloring = document.querySelectorAll("input[type=checkbox][name=coloring]");
+console.log("checkobes_coloring",checkboxes_coloring)
+
 // Default settings for the checkboxes
 let enabledSettings = ['pente']; // defines it with default settings
 let cost_col = 'TC_DWV'; 
@@ -95,15 +98,29 @@ function getPath(response){
             color: 'black',
             weight: 10
         }).addTo(map)
-          // Add path as geojson layer 
+          // Add path with cycling quality as geojson layer 
           geojson_path = L.geoJson(response, {
             style: style,
             onEachFeature: onEachFeature
         }).addTo(map)
+        // Create layers with grade coloring (but do not add it to map)
+        cost_col = 'grade_color'
+        geojson_grade = L.geoJson(response, {
+          style: style,
+          onEachFeature: onEachFeature
+        });
+        // Create layers with infrastructure coloring (but do not add it to map)
+        cost_col = 'infra_color'
+        geojson_infra = L.geoJson(response, {
+          style: style,
+          onEachFeature: onEachFeature
+        });
         // Fit the leaflet map to the path 
         map.fitBounds(geojson_path.getBounds());
         // Add the legend to the map
         legend.addTo(map);
+        // Check button for legend
+        document.getElementById('legend_CQ').checked = true;
         }); // End then 
   }
   else {
@@ -164,9 +181,11 @@ function reset() {
   map.removeLayer(marker_dep);
   map.removeLayer(marker_dest);
   // Remove the geojson layers for the path 
-  if (geojson_path) {
-    map.removeLayer(geojson_path)
-    map.removeLayer(geojson_bound)
+  if (geojson_path | geojson_grade | geojson_infra) {
+    map.removeLayer(geojson_path);
+    map.removeLayer(geojson_bound);
+    map.removeLayer(geojson_path);
+    map.removeLayer(geojson_infra);
   };
   // Reset all forms and checkboxes to default values
   input_dep.disabled = false;
@@ -191,38 +210,88 @@ function getColor_CQ(d) {
           d > 0.8 ? '#74add1' :
           '#313695';
   }
-// Get color function for coloring of path according to C IC in leaflet 
-function getColor_C_IC(d) {
+// Get color function for coloring of path according to grade in leaflet 
+function getColor_Grade(d) {
   /* Return color according to the class. The color palette comes from colorbrewer
   https://colorbrewer2.org/?type=diverging&scheme=RdYlBu&n=5 */
-  return  d > 1.5 ? '#d73027' : // > 1.5 
+  return  d > 10 ? '#762a83' : // > 10 - 15 
+          d > 5 ? '#af8dc3' : // 5 - 10
+          d > 0 ? '#e7d4e8' : // 0 - 5
+          d > -5 ? '#d9f0d3' : // -5 - 0 
+          d > -10 ? '#7fbf7b' : // -5 - -10
+          '#1b7837'; // < -10 
+  };
+// Get color function for coloring of path according to C_IC in leaflet 
+function getColor_Infra(d) {
+  /* Return color according to the class. The color palette comes from colorbrewer
+  https://colorbrewer2.org/?type=diverging&scheme=RdYlBu&n=5 */
+  return  d > 1.5 ? '#d73027' : // 1.5 - 2.5 
           d > 1.3 ? '#f46d43' : // 1.3 - 1.5
           d > 1.1 ? '#fdae61' : // 1.1 - 1.3
-          d > 1 ? '#ffffe7' : // 1 - 1.1
+          d > 1 ? '#ffffbf' : // 1 - 1.1
           d > 0.9 ? '#74add1' : // 0.9 - 1
           '#313695'; // 0.75 - 0.9
-  }
-// Style function to call in L.geojson to line colored according to a 
+  };
+// Style function to call in L.geojson to color the path with corresponding cycling quality 
 function style(feature) {
   /*
   Function called in L.geojson with parameters style:style ; colors the features in gejson according to their value  ;for now the value is fixed with TC_DWV = Cycling quality with taking into account trafic = DWV (mean trafic for monday-friday)
   */
- if (cost_col == 'TC_DWV'){
-  return {
-      color: getColor_CQ(feature.properties.TC_DWV),
+  if (cost_col == 'TC_DWV'){
+    return {
+        color: getColor_CQ(feature.properties.TC_DWV),
+        fillOpacity: 1,
+        weight: 5,
+        opacity: 1
+    };
+  } else if (cost_col == 'TC_noGR') {
+    return {
+      color: getColor_CQ(feature.properties.TC_noGR),
       fillOpacity: 1,
       weight: 5,
       opacity: 1
-  };
-} else if (cost_col == 'TC_noGR') {
-  return {
-    color: getColor_CQ(feature.properties.TC_noGR),
-    fillOpacity: 1,
-    weight: 5,
-    opacity: 1
+    };
+  } else if (cost_col=='grade_color'){
+    return {
+      color: getColor_Grade(feature.properties.grade),
+      fillOpacity: 1,
+      weight: 5,
+      opacity: 1
+    };
+  } else if (cost_col='infra_color') {
+    return {
+      color: getColor_Infra(feature.properties.C_IC_DWV),
+      fillOpacity: 1,
+      weight: 5,
+      opacity: 1
+    };
+  }
+}; // end style feature function
+
+
+var command = L.control({position: 'topright'});
+command.onAdd = function (map) {
+    var div = L.DomUtil.create('div');
+    div.innerHTML = `
+    <div class="leaflet-control-layers leaflet-control-layers-expanded">
+      <form>
+      <input class="leaflet-control-layers-overlays" id="classif_QC" 
+      onclick=toggleFunction(this) type="checkbox" checked>
+      Qualité cyclable
+      </input>
+        <input class="leaflet-control-layers-overlays" id="classif_pente" 
+          onclick=toggleFunction(this) type="checkbox">
+          Pente
+        </input>
+        <input class="leaflet-control-layers-overlays" id="classif_infra" 
+        onclick=toggleFunction(this.checked) type="checkbox">
+        Qualité infrastructures <br> cyclables
+      </input>
+      </form>
+    </div>`; 
+    return div;
 };
-}
-}
+// command.addTo(map); //your map variable
 
 function highlightFeature(e) {
   /*
@@ -370,21 +439,39 @@ OpenStreetMap_CH.addTo(map)
 L.control.layers(baseLayers).addTo(map);
 // Add the tooltip info 
 info.addTo(map);
-
-// Add legend about cycling quality class
+legend_btn = ''
+// Add legend about cycling quality class or gradient class
 legend.onAdd = function (map) {
+    let grade_breaks = [-10, -5, 0, 5, 10]
+    let grade_labels = ['-15% - -10%', '-10% - -5%', '-5% - 0%', '0% - 5%', '5% - 10%', '10% - 15%']
+    let cq_breaks = [0.5, 0.8, 1, 1.2, 1.5, 2];
+    let cq_labels = ['Très bonne', 'Bonne', 'Acceptable', 'Mauvaise', 'Très mauvaise', 'Extrêmement mauvaise'];
 
-    var div = L.DomUtil.create('div', 'info legend'),
-        cq_breaks = [0.5, 0.8, 1, 1.2, 1.5, 2],
-        labels = ['Très bonne', 'Bonne', 'Acceptable', 'Mauvaise', 'Très mauvaise', 'Extrêmement mauvaise'];
-
-    // loop through our density intervals and generate a label with a colored square for each interval
-    for (var i = 0; i < cq_breaks.length; i++) {
+    let div = L.DomUtil.create('div', 'info legend');
+    // Construct legend either for cycling quality or grade or cycling infrastructure
+    // Loop through our density intervals and generate a label with a colored square for each interval
+    // Use if else statements do determine which legend is constructed
+    if (legend_btn == 'grade') {
+      cost_col = 'grade'
+      geojson_path.setStyle(style)
+      // Add title for the legend 
+      div.innerHTML += 'Pente <br>'
+      for (var i = 0; i < grade_breaks.length; i++) {
+        div.innerHTML +=
+            '<i style="background:' + getColor_Grade(grade_breaks[i]+0.01) + '"></i> ' +
+            grade_labels[i] + '<br>';
+      }; // end for 
+    } else if (legend_btn == 'cycling_infra'){
+      div.innerHTML += 'Qualité des infrastructures<br>cyclables<br>'
+    } else { // by default, it is cycling quality that is used 
+      div.innerHTML += 'Qualité cyclable <br>'
+      for (var i = 0; i < cq_breaks.length; i++) {
         div.innerHTML +=
             '<i style="background:' + getColor_CQ(cq_breaks[i]+0.01) + '"></i> ' +
-            labels[i] + '<br>';
-    }
-
+            cq_labels[i] + '<br>';
+      }; // end for 
+    } // end else 
+    
     return div;
 };
 
@@ -493,22 +580,22 @@ form_dest.addEventListener('submit', async (event) => {
     }; // 
 });
 
-// 5. Interactivity with the checkboxes to define settings
+// 5. Interactivity with the checkboxes
+// For the routing 
 // Use Array.forEach to add an event listener to each checkbox. If settings change, a new path is calculated with the new settings 
-checkboxes.forEach(function(checkbox) {
+checkboxes_routing.forEach(function(checkbox) {
   checkbox.addEventListener('change', function() {
     enabledSettings = 
-      Array.from(checkboxes) // Convert checkboxes to an array to use filter and map.
+      Array.from(checkboxes_routing) // Convert checkboxes to an array to use filter and map.
       .filter(i => i.checked) // Use Array.filter to remove unchecked checkboxes.
       .map(i => i.value) // Use Array.map to extract only the checkbox values from the array of objects.
     // Remove existing paths
     if (geojson_path) {
       map.removeLayer(geojson_path)
       map.removeLayer(geojson_bound)
-    };
     if (enabledSettings.includes('pente')){
       cost_col = 'TC_DWV'
-          // Add fetch to send it to flask app
+    // Add fetch to send it to flask app
     fetch('/', {
       headers : {
           'Content-Type' : 'application/json'
@@ -547,6 +634,69 @@ checkboxes.forEach(function(checkbox) {
       .catch(function(error) {
         console.log(error);
         })
-    }
+    } ; // end else
+  } // end if geojson_path exist
   }) // End AddEventListener 
 });
+
+enabledColoring = ['legend_CQ']
+// For the path coloring 
+checkboxes_coloring.forEach(function(checkbox) {
+  checkbox.addEventListener('change', function() {
+    enabledColoring = 
+      Array.from(checkboxes_coloring) // Convert checkboxes to an array to use filter and map.
+      .filter(i => i.checked) // Use Array.filter to remove unchecked checkboxes.
+      .map(i => i.value) // Use Array.map to extract only the checkbox values from the array of objects.
+    
+
+  }) // End AddEventListener
+}); 
+
+// Define function to process checkboxes for legend 
+function processCheck(checkbox) {
+  var checkId = checkbox.id;
+  if (checkbox.checked) {
+    if (checkId=='legend_grade'){
+      // Remove actual layer
+      if (geojson_path){ 
+      map.removeLayer(geojson_path);
+      };
+      if (geojson_infra){
+      map.removeLayer(geojson_infra)
+      };
+      // Add new layer
+      geojson_grade.addTo(map);
+      // Remove check from legend_infra
+      document.getElementById("legend_infra").checked = false;
+      document.getElementById("legend_CQ").checked = false;
+    } else if (checkId='legend_infra'){
+      // Remove actual layer
+      if (geojson_path){ 
+        map.removeLayer(geojson_path);
+        };
+        if (geojson_grade){
+        map.removeLayer(geojson_grade)
+        };
+        // Add new layer
+        geojson_infra.addTo(map);
+        // Remove check from legend_infra
+        document.getElementById("legend_infra").checked = false;
+        document.getElementById("legend_CQ").checked = false;
+      } else { // by default with cycling quality
+      // Remove actual layer
+      if (geojson_infra){ 
+        map.removeLayer(geojson_infra);
+        };
+        if (geojson_grade){
+        map.removeLayer(geojson_grade)
+        };
+        // Add new layer
+        geojson_path.addTo(map);
+        // Remove check from legend_infra
+        document.getElementById("legend_infra").checked = false;
+        document.getElementById("legend_grade").checked = false;
+    }
+  }
+  
+}
+
