@@ -32,6 +32,9 @@ cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='
 # Lausanne boundaries
 boundaries_lausanne_epsg4326 =  gpd.read_file(r'static/data/limite_lausanne_epsg4326.shp', encoding='utf-8')
 
+print(cost_intersection['C_movement'])
+print("dir_edges list columns names\n", dir_edges_list.columns.values.tolist())
+
 # Remove uncessary column
 # Change some columns types. u/v columns are stored as float values, but need to be integers 
 # Round float values 
@@ -206,44 +209,25 @@ def opening_page():
     construct_kdTree(nodes_xy=nodes_epsg3857_xy)
     return render_template('index.html')
 
-path = []
 # Different app routes
 # Index definition, main page of the application
 @app.route('/', methods=["GET", "POST"])
 def get_itineraries():
-    global path
+    # Define variables for the SP algo
+    global path,path_inter,pd_col,tc_col
+
     # Receive data for the routing from js file
     if request.method == "POST":
+        # Define default value for pd and tc_col 
+        path = []
+        path_inter = []
+        pd_col = 'PD_DWV'
+        tc_col = 'TC_DWV'
         # Get data necessary for routing : settings and lat/lng
         routingData = request.get_json()
         # Determine settings from checkboxes
         settings = routingData['Settings']
-        # Different trafic values according to checkboxes, by default it is DWV
-        # HP_matin = ASP
-        if ('HP_matin' in settings):
-            # Determine the names of the coloumns to take into account
-            trafic_col = 'MSP_ALLE'
-            tc_col = 'TC_MSP'
-            pd_col = 'PD_MSP'
-        # HP_soir = ASP
-        elif ('HP_soir' in settings):
-            trafic_col = 'ASP_ALLE'
-            tc_col = 'TC_ASP'
-            pd_col = 'PD_ASP'
-        # DWV (by default) 
-        else:
-            trafic_col = 'DWV_ALLE'
-            tc_col = 'TC_DWV'
-            pd_col = 'PD_DWV'
-        # For the intersections and pente 
-        if ('intersections' in settings ): # It will be the other way around at the end, just to make finding shortest path quicker
-            cost_inter = True
-        else:
-            cost_inter = False
-        if('pente' not in settings):
-            pente = False
-            
-        # Now the lat/lng data 
+        # Process lat/lng data 
         # Project the lat/lng in epsg3857 to have meters
         outProj = Proj('epsg:3857')
         inProj = Proj('epsg:4326')
@@ -258,32 +242,59 @@ def get_itineraries():
         target = get_nearest_node(kdTree=kd_tree, x=dest_lat, y=dest_lon)
         print("Determining the shortest path.")
         start_time = time.time()
-        # If take intersections into account, use own code (but slow)
-        if cost_inter:
+        # For intersections and grade taken into account (onw SP algo)
+        if ('intersections' in settings ):
             print("Using own code to determine shortest path")
-            path = get_shortest_path(dwg=G,
+            path_inter = get_shortest_path(dwg=G,
             source=start,
             target=target,
             edge_weight=pd_col,
             intersection_cost = cost_intersection,
             verbose=False)
-            nodes_path = path['path']
-            distance = path['weight']
+            nodes_path = path_inter['path']
+            distance = path_inter['weight']
             print("The weight is %s and the weight is \n %s" %(distance, nodes_path))
-        else: # If not checked, use networkx for quicker response
-            print("Using networkx to determine shortest path")
+            print("The path algorithm with intersection and grade took [seconds]", time.time()- start_time)
+        # For intersections, but without the grade
+        elif (('intersections' in settings) & ('pente' not in settings)):
+            # Update  perceived distance and cost columns for the algorithm 
+            pd_col = 'PD_noGR'
+            tc_col = 'TC_noGR'
+            path_inter = get_shortest_path(dwg=G,
+            source=start,
+            target=target,
+            edge_weight=pd_col,
+            intersection_cost = cost_intersection,
+            verbose=False)
+            nodes_path = path_inter['path']
+            distance = path_inter['weight']
+            print("The total weight is %s " %(distance))
+            print("The path algorithm with intersection but without grade took [seconds]", time.time()- start_time)
+        # No intersection and no grade
+        elif ('pente' not in settings):
+            # Update pd and tc cols for the SP algo
+            pd_col = 'PD_noGR'
+            tc_col = 'TC_noGR'
             path = nx.single_source_dijkstra(G, source=start, target=target, cutoff=None, weight=pd_col)
             distance = path[0]
             nodes_path = path[-1]
-            print("The perceived distance is (in km)", distance/1000, "and the corresponding path is \n", path)
-        # Fixed path to go quicker
-        # path = [266860942, 414238563, 573250847, 418016472, 602689559, 267510221, 602689574, 573250900, 8790226568]
+            print("The perceived distance is (in km)", distance/1000)
+            print("The path algorithm without grade or intersections (using networkx) took [seconds]", time.time()- start_time)
+
+        # No intersection with grade, choices by default
+        else: 
+            path = nx.single_source_dijkstra(G, source=start, target=target, cutoff=None, weight=pd_col)
+            distance = path[0]
+            nodes_path = path[-1]
+            print("The perceived distance is (in km)", distance/1000)
+            print("The path algorithm with default settings (using networkx) took [seconds]", time.time()- start_time)
+
         # Determine the edges corresponding to the nodes in the path
         # Define a df that will receive the edges and necessary data 
-        params_to_keep = ['u', 'v','oneway', 'name', 'grade', 'Am_cycl', trafic_col, pd_col, tc_col, 'geometry']
+        params_to_keep = ['u', 'v','oneway','name', 'grade', 'Am_cycl', 'DWV_ALLE', pd_col, tc_col, 'geometry']
         # Take the edges from df with crs = epsg:4326 to match leaflet 
         edges_df = dir_edges_list_epsg4326[params_to_keep]
-        edges_df.drop(edges_df.index[:], inplace=True)
+        edges_df = edges_df.drop(edges_df.index[:])
         for i in range(0, len(nodes_path) - 1, 1):
             edge_u = nodes_path[i]
             edge_v = nodes_path[i+1]
@@ -292,9 +303,9 @@ def get_itineraries():
             edges_df = pd.concat([edges_df, edge])
 
         edges_df = edges_df.sort_values(by=[tc_col])
-        # There still are duplicated edges, so remove them by keeping the one with the lowest TC
+        # There can still be duplicated edges, so remove them by keeping the one with the lowest TC
         edges_df.drop_duplicates(subset=['u', 'v'], inplace=True, ignore_index=True)
-        # Have to tranform it into json 
+        # Have to tranform it into json to send it to javascript
         edges_geojson = edges_df.to_json()
 
         return edges_geojson
