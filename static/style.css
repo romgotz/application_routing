@@ -26,13 +26,13 @@ font-family: "Roboto";
 font-size: 16pt;
 }
 #explication{
-  font-size: 12pt;
+  font-size: 11pt;
   font-family: "Roboto"; 
 }
 #map {
 position: relative;
 top: 5px;
-height: 540px;
+height: 480px;
 width: 720px;
 margin: 5px;
 background-color: #f5f5dc;
@@ -48,9 +48,9 @@ border: 1px solid #666;
 position: relative;
 padding: 5px;
 margin: 5px;
-top: -540px;
+top: -480px;
 left: 720px;
-height: 540px;
+height: 480px;
 width: 420px;
 background-color: #f0f0f0;
 border: 1px solid #666;

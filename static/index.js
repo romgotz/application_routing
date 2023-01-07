@@ -81,8 +81,8 @@ var input_dest = form_dest.querySelector('input[type="text"]');
 // Selection 
 // Select all checkboxes 
 const checkboxes_routing = document.querySelectorAll("input[type=checkbox][name=settings]");
-const checkboxes_coloring = document.querySelectorAll("input[type=checkbox][name=coloring]");
-console.log("checkobes_coloring",checkboxes_coloring)
+// const checkboxes_coloring = document.querySelectorAll("input[type=checkbox][name=coloring]");
+// console.log("checkobes_coloring",checkboxes_coloring)
 
 // Default settings for the checkboxes
 let enabledSettings = ['pente']; // defines it with default settings
@@ -104,23 +104,24 @@ function getPath(response){
             onEachFeature: onEachFeature
         }).addTo(map)
         // Create layers with grade coloring (but do not add it to map)
-        cost_col = 'grade_color'
-        geojson_grade = L.geoJson(response, {
-          style: style,
-          onEachFeature: onEachFeature
-        });
+        // cost_col = 'grade_color'
+        // geojson_grade = L.geoJson(response, {
+          //style: style,
+          //onEachFeature: onEachFeature
+        // }) .addTo(map);
         // Create layers with infrastructure coloring (but do not add it to map)
-        cost_col = 'infra_color'
+ /*        cost_col = 'infra_color'
         geojson_infra = L.geoJson(response, {
           style: style,
           onEachFeature: onEachFeature
-        });
-        // Fit the leaflet map to the path 
-        map.fitBounds(geojson_path.getBounds());
+        }); */
+        // Fit the leaflet map to the path
+        bounds = geojson_path.getBounds();
+        map.fitBounds(bounds);
         // Add the legend to the map
         legend.addTo(map);
-        // Check button for legend
-        document.getElementById('legend_CQ').checked = true;
+        // Add the tooltip info 
+        info.addTo(map);
         }); // End then 
   }
   else {
@@ -181,11 +182,9 @@ function reset() {
   map.removeLayer(marker_dep);
   map.removeLayer(marker_dest);
   // Remove the geojson layers for the path 
-  if (geojson_path | geojson_grade | geojson_infra) {
+  if (geojson_path) {
     map.removeLayer(geojson_path);
     map.removeLayer(geojson_bound);
-    map.removeLayer(geojson_path);
-    map.removeLayer(geojson_infra);
   };
   // Reset all forms and checkboxes to default values
   input_dep.disabled = false;
@@ -437,8 +436,6 @@ map.setView([46.5196535, 6.6322734], 13);
 OpenStreetMap_CH.addTo(map)
 // Add possibility to change background layer
 L.control.layers(baseLayers).addTo(map);
-// Add the tooltip info 
-info.addTo(map);
 legend_btn = ''
 // Add legend about cycling quality class or gradient class
 legend.onAdd = function (map) {
@@ -513,6 +510,8 @@ form_dep.addEventListener('submit', async (event) => {
   input_dep.value = adresse;
   // Put a marker on the adresse
   marker_dep.setLatLng([lat_dep, lon_dep]).addTo(map);
+  // Update click value
+  click +=1;
 
   if (lat_dep && lat_dest && lon_dep && lon_dest) {
     // Add fetch to send it to flask app
@@ -553,7 +552,8 @@ form_dest.addEventListener('submit', async (event) => {
   adresse = adresse.replace(", Vaud", "");
   // Adding the found adresse in the form in html
   input_dest.value = adresse
-
+  // Update click value
+  click += 1
   // Adding marker 
   marker_dest.setLatLng([lat_dest, lon_dest]).addTo(map);
   // Need to send those variables to python app.py
@@ -639,6 +639,7 @@ checkboxes_routing.forEach(function(checkbox) {
   }) // End AddEventListener 
 });
 
+/*
 enabledColoring = ['legend_CQ']
 // For the path coloring 
 checkboxes_coloring.forEach(function(checkbox) {
@@ -651,6 +652,7 @@ checkboxes_coloring.forEach(function(checkbox) {
 
   }) // End AddEventListener
 }); 
+
 
 // Define function to process checkboxes for legend 
 function processCheck(checkbox) {
@@ -699,4 +701,4 @@ function processCheck(checkbox) {
   }
   
 }
-
+*/
