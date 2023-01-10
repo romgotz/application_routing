@@ -17,6 +17,7 @@ import timeit
 from pyproj import Proj, transform
 from shapely.geometry import Point, MultiPoint
 from shapely.ops import nearest_points
+from shapely import wkt
 
 app = Flask(__name__)
 app.debug = True
@@ -24,7 +25,7 @@ app.debug = True
 
 # 1. Download local data and prepare it 
 # Edges file to build the graph 
-dir_edges_list = gpd.read_file(r'static/data/edgelist_network_epsg32632.shp', encoding='iso-8859-1')
+# dir_edges_list = gpd.read_file(r'static/data/edgelist_network_epsg32632.shp', encoding='iso-8859-1')
 # dir_edges_list['name'] = dir_edges_list['name'].decode("iso-8859-1").encode("utf-8")
 # Nodes file to build the graph 
 nodes = gpd.read_file(r'static/data/nodes_network_epsg32632.shp', encoding='utf-8')
@@ -35,25 +36,26 @@ boundaries_lausanne_epsg4326 =  gpd.read_file(r'static/data/limite_lausanne_epsg
 border_lausanne = boundaries_lausanne_epsg4326.to_json(show_bbox=True)
 
 # 1. Download data from github links 
+# Cost_intersection 
 git_path_cost_inter = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/cost_intersection.csv'
 cost_intersection = pd.read_csv(git_path_cost_inter, encoding='utf-8', sep=';')
-git_path_dir_edgelsit = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/dir_edges_list.csv'
-gdf = gpd.GeoDataFrame(dir_edges_list, geometry='geometry')
+# Dir_edges list
+git_path_dir_edgelsit = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/edgelist_network_epsg32632.csv'
+dir_edges_list = pd.read_csv(git_path_dir_edgelsit, encoding='ISO-8859-1', sep=';')
+# Nodes
+git_path_nodes = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/nodes_network_epsg32632.csv'
+nodes = pd.read_csv(git_path_nodes, encoding='utf-8', sep=';')
+print(nodes.dtypes)
+nodes['geometry'] = gpd.Geoseries.from_wkt(nodes['geometry'])
+# dir_edges_list['geometry'] = gpd.GeoSeries.from_wkt(dir_edges_list['geometry'])
+# dir_edges_list['geometry'] = dir_edges_list['geometry'].apply(wkt.loads)
+dir_edges_list['geometry'] = gpd.GeoSeries.from_wkt(dir_edges_list['geometry'])
 
-dir_edges_list.to_csv(r'static/data/edgelist_network_epsg32632.csv', encoding='utf-8', sep=';')
+dir_edges_list = gpd.GeoDataFrame(dir_edges_list,crs="EPSG:32632", geometry='geometry')
+
+print(dir_edges_list.dtypes, "\n", dir_edges_list.columns.values.tolist())
+
 exit()
-git_path_2 = r'/vsicurl/https://github.com/romgotz/application_routing/blob/3a3ead88854a941de169a631dc803238605d6dae/static/data/nodes_network_epsg32632.shp?raw=true'
-gdf = gpd.read_file(git_path_2)
-print(gdf.head(5))
-exit()
-
-test_1 = gpd.read_file('/vsicurl/https://github.com/Toblerity/Fiona/raw/master/static/data/.shp')
-print(test_1.head())
-test = gpd.read_file(r'/vsicurl/https://raw.githubusercontent.com/romgotz/application_routing/blob/3a3ead88854a941de169a631dc803238605d6dae/static/data/edgelist_network_epsg32632.shp')
-print(test.head())
-
-exit()
-
 # Remove uncessary column
 # Change some columns types. u/v columns are stored as float values, but need to be integers 
 # Round float values 
