@@ -44,7 +44,7 @@ git_path_cost_inter = r'https://raw.githubusercontent.com/romgotz/application_ro
 cost_intersection = pd.read_csv(git_path_cost_inter, encoding='utf-8', sep=';')
 # Dir_edges list
 git_path_dir_edgelsit = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/edgelist_network_epsg32632.csv'
-dir_edges_list = pd.read_csv(git_path_dir_edgelsit, encoding='ISO-8859-1', sep=';')
+dir_edges_list = pd.read_csv(git_path_dir_edgelsit, encoding='utf-8', sep=';')
 # Nodes
 git_path_nodes = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/nodes_network_epsg32632.csv'
 nodes = pd.read_csv(git_path_nodes, encoding='utf-8', sep=';')
@@ -55,12 +55,7 @@ nodes = gpd.GeoDataFrame(nodes,crs="EPSG:32632", geometry='geometry')
 dir_edges_list['geometry'] = gpd.GeoSeries.from_wkt(dir_edges_list['geometry'])
 dir_edges_list = gpd.GeoDataFrame(dir_edges_list,crs="EPSG:32632", geometry='geometry')
 
-print("dir_edges_type\n", dir_edges_list.dtypes, "\n nodes dtypes\n", nodes.dtpyes)
-
-exit()
-# Change some columns types. u/v columns are stored as float values, but need to be integers 
-
-# Do the same with nodes osmid 
+# Change some columns type of osmid for nodes, need to be interger and not float 
 # same for nodes osmid
 nodes['osmid']  = nodes['osmid'].round()
 nodes[['osmid']] = nodes[['osmid']].applymap(np.int64)
