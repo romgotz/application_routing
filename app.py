@@ -24,15 +24,35 @@ app.debug = True
 
 # 1. Download local data and prepare it 
 # Edges file to build the graph 
-dir_edges_list = gpd.read_file(r'static/data/edgelist_network_epsg32632.shp', encoding='utf-8')
+dir_edges_list = gpd.read_file(r'static/data/edgelist_network_epsg32632.shp', encoding='iso-8859-1')
+# dir_edges_list['name'] = dir_edges_list['name'].decode("iso-8859-1").encode("utf-8")
 # Nodes file to build the graph 
 nodes = gpd.read_file(r'static/data/nodes_network_epsg32632.shp', encoding='utf-8')
 # Intersection cost file for the shortest path algorithm
-cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='utf-8', sep=';')
+cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='utf-8', sep=',')
 # Lausanne boundaries
 boundaries_lausanne_epsg4326 =  gpd.read_file(r'static/data/limite_lausanne_epsg4326.shp', encoding='utf-8')
+border_lausanne = boundaries_lausanne_epsg4326.to_json(show_bbox=True)
 
-cost_intersection = cost_intersection.loc[cost_intersection['C_movement'] > 0]
+# 1. Download data from github links 
+git_path_cost_inter = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/cost_intersection.csv'
+cost_intersection = pd.read_csv(git_path_cost_inter, encoding='utf-8', sep=';')
+git_path_dir_edgelsit = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/dir_edges_list.csv'
+gdf = gpd.GeoDataFrame(dir_edges_list, geometry='geometry')
+
+dir_edges_list.to_csv(r'static/data/edgelist_network_epsg32632.csv', encoding='utf-8', sep=';')
+exit()
+git_path_2 = r'/vsicurl/https://github.com/romgotz/application_routing/blob/3a3ead88854a941de169a631dc803238605d6dae/static/data/nodes_network_epsg32632.shp?raw=true'
+gdf = gpd.read_file(git_path_2)
+print(gdf.head(5))
+exit()
+
+test_1 = gpd.read_file('/vsicurl/https://github.com/Toblerity/Fiona/raw/master/static/data/.shp')
+print(test_1.head())
+test = gpd.read_file(r'/vsicurl/https://raw.githubusercontent.com/romgotz/application_routing/blob/3a3ead88854a941de169a631dc803238605d6dae/static/data/edgelist_network_epsg32632.shp')
+print(test.head())
+
+exit()
 
 # Remove uncessary column
 # Change some columns types. u/v columns are stored as float values, but need to be integers 
@@ -212,6 +232,10 @@ def opening_page():
 # Index definition, main page of the application
 @app.route('/', methods=["GET", "POST"])
 def get_itineraries():
+    if not G :
+        construct_digraph(dir_edges_list=dir_edges_list_epsg3857, nodes_df=nodes_epsg3857)
+    if not kd_tree:
+        construct_kdTree(nodes_xy=nodes_epsg3857_xy)
     # Define variables for the SP algo
     global path,path_inter,pd_col,tc_col
 
@@ -252,7 +276,7 @@ def get_itineraries():
             verbose=False)
             nodes_path = path_inter['path']
             distance = path_inter['weight']
-            print("The weight is %s and the weight is \n %s" %(distance, nodes_path))
+            print("The weight is %s " %(distance))
             print("The path algorithm with intersection and grade took [seconds]", time.time()- start_time)
         # For intersections, but without the grade
         elif (('intersections' in settings) & ('pente' not in settings)):
@@ -290,7 +314,7 @@ def get_itineraries():
 
         # Determine the edges corresponding to the nodes in the path
         # Define a df that will receive the edges and necessary data 
-        params_to_keep = ['u', 'v','oneway','name', 'grade', 'Am_cycl', 'DWV_ALLE','C_IC_DWV', 'TC_DWV', 'PD_DWV', 'TC_noGR', 'PD_noGR', 'geometry']
+        params_to_keep = ['u', 'v','name', 'grade', 'Am_cycl', 'DWV_ALLE','C_IC_DWV','TC_DWV', 'PD_DWV', 'TC_noGR', 'PD_noGR', 'geometry']
         # Take the edges from df with crs = epsg:4326 to match leaflet 
         edges_df = dir_edges_list_epsg4326[params_to_keep]
         edges_df = edges_df.drop(edges_df.index[:])
