@@ -1,5 +1,6 @@
 // 1. Define variables and constant used in global
-
+// Get border of Lausanne 
+const fronLaus = JSON.parse(border);
 // Variables that receive lat/lon from leaflet sent to flask 
 // Declare them as false, so only when 4 variables habve values, they are sent to routing algo in app.py
 lat_dep= false;
@@ -55,8 +56,17 @@ const baseLayers = {
 
 // Variables for leaflet map
 var map = L.map('map'); // contains leaflet map
+map.setView([46.5196535, 6.6322734], 13); 
 var legend = L.control({position: 'topright'}); // contains the legend
 var info = L.control({position: 'topleft'}); // tooltip containing info 
+
+var border_Laus = L.geoJson(fronLaus, {
+  color: 'black',
+  weight: 2,
+  fillOpacity: 0
+}).addTo(map);
+bounds_Laus = border_Laus.getBounds();
+map.fitBounds(bounds_Laus);
 
 
 // Variables for the geosearching adresse toolbar
@@ -195,7 +205,8 @@ function reset() {
   document.getElementById("pente").checked = true;
   enabledSettings = ['pente']
   // Reset the map view to begining
-  map.setView([46.5196535, 6.6322734], 13); 
+  map.setView([46.5196535, 6.6322734], 13);
+  map.fitBounds(bounds_Laus); 
 }
 
 // Get color function for coloring of path according to Cycling Quality in leaflet 
@@ -430,8 +441,6 @@ function onMapClick(e) {
 }; // end of click function
 
 // 3. Initialize the leaflet map 
-// Center on Lausanne
-map.setView([46.5196535, 6.6322734], 13); 
 // Put OSM as default background layer
 OpenStreetMap_CH.addTo(map)
 // Add possibility to change background layer

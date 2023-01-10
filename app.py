@@ -34,8 +34,8 @@ app.debug = True
 # Intersection cost file for the shortest path algorithm
 # cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='utf-8', sep=',')
 # Lausanne boundaries
-# boundaries_lausanne_epsg4326 =  gpd.read_file(r'static/data/limite_lausanne_epsg4326.shp', encoding='utf-8')
-# border_lausanne = boundaries_lausanne_epsg4326.to_json(show_bbox=True)
+boundaries_lausanne_epsg4326 =  gpd.read_file(r'static/data/limite_lausanne_epsg4326.shp', encoding='utf-8')
+border_lausanne = boundaries_lausanne_epsg4326.to_json(show_bbox=True)
 
 # 1. Download data from github links 
 # Read csv from github links
@@ -218,7 +218,7 @@ def get_shortest_path(dwg, source, target, edge_weight, intersection_cost, verbo
 def opening_page():
     construct_digraph(dir_edges_list=dir_edges_list_epsg3857, nodes_df=nodes_epsg3857)
     construct_kdTree(nodes_xy=nodes_epsg3857_xy)
-    return render_template('index.html')
+    return render_template('index.html', border=boundaries_lausanne_epsg4326.to_json(show_bbox=False))
 
 # Different app routes
 # Index definition, main page of the application

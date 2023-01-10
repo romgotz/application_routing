@@ -3,6 +3,9 @@
 {% block content %}
 
 <h1> {% block title %} VéloRouter Lausanne : Proposition d'itinéraires les plus sûrs et confortables {%endblock%}</h1>
+
+<script> const border = {{ border|tojson }}</script>
+
 <div class="main">
     <!-- Left part of the page is for the leaflet map -->
     <div id="map"></div>
