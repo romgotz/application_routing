@@ -18,6 +18,8 @@ from pyproj import Proj, transform
 from shapely.geometry import Point, MultiPoint
 from shapely.ops import nearest_points
 from shapely import wkt
+import shapely
+from shapely.errors import WKTReadingError
 
 app = Flask(__name__)
 app.debug = True
@@ -28,14 +30,15 @@ app.debug = True
 # dir_edges_list = gpd.read_file(r'static/data/edgelist_network_epsg32632.shp', encoding='iso-8859-1')
 # dir_edges_list['name'] = dir_edges_list['name'].decode("iso-8859-1").encode("utf-8")
 # Nodes file to build the graph 
-nodes = gpd.read_file(r'static/data/nodes_network_epsg32632.shp', encoding='utf-8')
+# nodes = gpd.read_file(r'static/data/nodes_network_epsg32632.shp', encoding='utf-8')
 # Intersection cost file for the shortest path algorithm
-cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='utf-8', sep=',')
+# cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='utf-8', sep=',')
 # Lausanne boundaries
-boundaries_lausanne_epsg4326 =  gpd.read_file(r'static/data/limite_lausanne_epsg4326.shp', encoding='utf-8')
-border_lausanne = boundaries_lausanne_epsg4326.to_json(show_bbox=True)
+# boundaries_lausanne_epsg4326 =  gpd.read_file(r'static/data/limite_lausanne_epsg4326.shp', encoding='utf-8')
+# border_lausanne = boundaries_lausanne_epsg4326.to_json(show_bbox=True)
 
 # 1. Download data from github links 
+# Read csv from github links
 # Cost_intersection 
 git_path_cost_inter = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/cost_intersection.csv'
 cost_intersection = pd.read_csv(git_path_cost_inter, encoding='utf-8', sep=';')
@@ -45,25 +48,17 @@ dir_edges_list = pd.read_csv(git_path_dir_edgelsit, encoding='ISO-8859-1', sep='
 # Nodes
 git_path_nodes = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/nodes_network_epsg32632.csv'
 nodes = pd.read_csv(git_path_nodes, encoding='utf-8', sep=';')
-print(nodes.dtypes)
-nodes['geometry'] = gpd.Geoseries.from_wkt(nodes['geometry'])
-# dir_edges_list['geometry'] = gpd.GeoSeries.from_wkt(dir_edges_list['geometry'])
-# dir_edges_list['geometry'] = dir_edges_list['geometry'].apply(wkt.loads)
-dir_edges_list['geometry'] = gpd.GeoSeries.from_wkt(dir_edges_list['geometry'])
 
+# Transform nodes and edges df into gdf 
+nodes['geometry'] = gpd.GeoSeries.from_wkt(nodes['geometry'])
+nodes = gpd.GeoDataFrame(nodes,crs="EPSG:32632", geometry='geometry')
+dir_edges_list['geometry'] = gpd.GeoSeries.from_wkt(dir_edges_list['geometry'])
 dir_edges_list = gpd.GeoDataFrame(dir_edges_list,crs="EPSG:32632", geometry='geometry')
 
-print(dir_edges_list.dtypes, "\n", dir_edges_list.columns.values.tolist())
+print("dir_edges_type\n", dir_edges_list.dtypes, "\n nodes dtypes\n", nodes.dtpyes)
 
 exit()
-# Remove uncessary column
 # Change some columns types. u/v columns are stored as float values, but need to be integers 
-# Round float values 
-dir_edges_list['u'] = dir_edges_list['u'].round()
-dir_edges_list['v'] = dir_edges_list['v'].round()
-# Change  data types to integer64
-cols = ['u', 'v']
-dir_edges_list[cols] = dir_edges_list[cols].applymap(np.int64)
 
 # Do the same with nodes osmid 
 # same for nodes osmid
