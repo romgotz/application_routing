@@ -1,16 +1,16 @@
 // 1. Define variables and constant used in global
-// Get border of Lausanne 
+// Get border of Lausanne comming from app.py (through the index file)
 const fronLaus = JSON.parse(border);
 // Variables that receive lat/lon from leaflet sent to flask 
-// Declare them as false, so only when 4 variables habve values, they are sent to routing algo in app.py
+// Declare them as false, so only when 4 variables have values, they are sent to routing algo in app.py
 lat_dep= false;
 lat_dest = false;
 lon_dep = false;
 lon_dest = false;
 // Click variable to count click on leaflet map. To make sure we have 2 clicks that are start/destination 
 var click = 0;
-// Variable to receive geojson layer containing path from algo routing (coming from app.py) 
-var geojson_path, geojson_bound = false;
+// Variable to receive geojson layer containing path and lausanne border from algo routing (coming from app.py) 
+var geojson_path, geojson_bound, border_Laus = false;
 // Define icons for start/destination markers with some parameters
 const icone_depart = L.icon({
   iconUrl: 'static/img/marker_dep.svg',
@@ -27,8 +27,8 @@ const icone_dest = L.icon({
   popupAnchor: [1, -34]
 });
 // Define two markers for destination and start (set lat,lng otherwise does not work, do not know why)
-var marker_dest = L.marker((45, 5), {icon:icone_dest}, {draggable: true})
-var marker_dep = L.marker((45, 5), {icon:icone_depart}, {draggable: true})
+var marker_dest = L.marker((45, 5), {icon:icone_dest}, {draggable: false})
+var marker_dep = L.marker((45, 5), {icon:icone_depart}, {draggable: false})
 
 // Different background layers accessible in leaflet 
 // OSM
@@ -56,18 +56,8 @@ const baseLayers = {
 
 // Variables for leaflet map
 var map = L.map('map'); // contains leaflet map
-map.setView([46.5196535, 6.6322734], 13); 
 var legend = L.control({position: 'topright'}); // contains the legend
 var info = L.control({position: 'topleft'}); // tooltip containing info 
-
-var border_Laus = L.geoJson(fronLaus, {
-  color: 'black',
-  weight: 2,
-  fillOpacity: 0
-}).addTo(map);
-bounds_Laus = border_Laus.getBounds();
-map.fitBounds(bounds_Laus);
-
 
 // Variables for the geosearching adresse toolbar
 // Setting geosearch control button
@@ -91,8 +81,6 @@ var input_dest = form_dest.querySelector('input[type="text"]');
 // Selection 
 // Select all checkboxes 
 const checkboxes_routing = document.querySelectorAll("input[type=checkbox][name=settings]");
-// const checkboxes_coloring = document.querySelectorAll("input[type=checkbox][name=coloring]");
-// console.log("checkobes_coloring",checkboxes_coloring)
 
 // Default settings for the checkboxes
 let enabledSettings = ['pente']; // defines it with default settings
@@ -112,7 +100,7 @@ function getPath(response){
           geojson_path = L.geoJson(response, {
             style: style,
             onEachFeature: onEachFeature
-        }).addTo(map)
+        }).addTo(map);
         // Create layers with grade coloring (but do not add it to map)
         // cost_col = 'grade_color'
         // geojson_grade = L.geoJson(response, {
@@ -441,6 +429,17 @@ function onMapClick(e) {
 }; // end of click function
 
 // 3. Initialize the leaflet map 
+// Set the view
+map.setView([46.5196535, 6.6322734], 13); 
+// Add border of Lausanne
+border_Laus = L.geoJson(fronLaus, {
+  color: 'black',
+  weight: 2,
+  fillOpacity: 0
+}).addTo(map);
+// fit map to the border
+bounds_Laus = border_Laus.getBounds();
+map.fitBounds(bounds_Laus);
 // Put OSM as default background layer
 OpenStreetMap_CH.addTo(map)
 // Add possibility to change background layer

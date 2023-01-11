@@ -24,9 +24,6 @@ from shapely.errors import WKTReadingError
 app = Flask(__name__)
 app.debug = True
 
-
-# 1. Download local data and prepare it 
-
 # 1. Download data from github links 
 # Read csv from github links
 # Cost_intersection 
