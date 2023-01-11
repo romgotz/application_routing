@@ -26,16 +26,6 @@ app.debug = True
 
 
 # 1. Download local data and prepare it 
-# Edges file to build the graph 
-# dir_edges_list = gpd.read_file(r'static/data/edgelist_network_epsg32632.shp', encoding='iso-8859-1')
-# dir_edges_list['name'] = dir_edges_list['name'].decode("iso-8859-1").encode("utf-8")
-# Nodes file to build the graph 
-# nodes = gpd.read_file(r'static/data/nodes_network_epsg32632.shp', encoding='utf-8')
-# Intersection cost file for the shortest path algorithm
-# cost_intersection = pd.read_csv(r'static/data/cost_intersection.csv', encoding='utf-8', sep=',')
-# Lausanne boundaries
-boundaries_lausanne_epsg4326 =  gpd.read_file(r'static/data/limite_lausanne_epsg4326.shp', encoding='utf-8')
-border_lausanne = boundaries_lausanne_epsg4326.to_json(show_bbox=True)
 
 # 1. Download data from github links 
 # Read csv from github links
@@ -48,12 +38,17 @@ dir_edges_list = pd.read_csv(git_path_dir_edgelsit, encoding='utf-8', sep=';')
 # Nodes
 git_path_nodes = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/nodes_network_epsg32632.csv'
 nodes = pd.read_csv(git_path_nodes, encoding='utf-8', sep=';')
+# Lausanne border
+git_path_border = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/limite_lausanne_epsg4326.csv'
+border_lausanne_epsg4326 = pd.read_csv(git_path_border, encoding='utf-8', sep=';')
 
 # Transform nodes and edges df into gdf 
 nodes['geometry'] = gpd.GeoSeries.from_wkt(nodes['geometry'])
 nodes = gpd.GeoDataFrame(nodes,crs="EPSG:32632", geometry='geometry')
 dir_edges_list['geometry'] = gpd.GeoSeries.from_wkt(dir_edges_list['geometry'])
 dir_edges_list = gpd.GeoDataFrame(dir_edges_list,crs="EPSG:32632", geometry='geometry')
+border_lausanne_epsg4326['geometry'] = gpd.GeoSeries.from_wkt(border_lausanne_epsg4326['geometry'])
+border_lausanne_epsg4326 = gpd.GeoDataFrame(border_lausanne_epsg4326,crs="EPSG:4326", geometry='geometry')
 
 # Change some columns type of osmid for nodes, need to be interger and not float 
 # same for nodes osmid
@@ -218,7 +213,7 @@ def get_shortest_path(dwg, source, target, edge_weight, intersection_cost, verbo
 def opening_page():
     construct_digraph(dir_edges_list=dir_edges_list_epsg3857, nodes_df=nodes_epsg3857)
     construct_kdTree(nodes_xy=nodes_epsg3857_xy)
-    return render_template('index.html', border=boundaries_lausanne_epsg4326.to_json(show_bbox=False))
+    return render_template('index.html', border=border_lausanne_epsg4326.to_json())
 
 # Different app routes
 # Index definition, main page of the application
