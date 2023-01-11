@@ -10,3 +10,10 @@ Pour déterminer ces derniers, différentes variables sont prises en comptes :
 
 
 Cette application a été réalisée dans le cadre de mon Mémoire de Master pour la Master en Géographie spécialisation Analyse Spatiale et Systèmes Complexes de l'Université de Lausanne. Le mémoire complet est mis en ligne ici.
+
+# Données
+Les données utilisées viennent de différentes sources :
+<li> OpenStreetMap pour le réseau cyclable et les étendues d'eau et zones vertes
+<li> SwissTopo pour le Modèle Numérique de Terrain 2017 pour calculer la pente 
+<li> Guichet cartographique de la Ville de Lausanne pour les aménagements cyclables (rues et intersections) et les zones à vitesse modérée
+<li> Le Modèle National du trafic voyageur 2017 par le DETEC pour la charge de trafic 
