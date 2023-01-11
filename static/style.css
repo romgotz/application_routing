@@ -1,19 +1,23 @@
-.horizontal-center {
-  margin: 0px;
-  position: absolute;
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 5px;
   left: 50%;
-  -ms-transform: translateY(-50%);
-  transform: translateY(-50%);
 }
-
 body {
 padding: 5px;
 margin: 3px;
   }
 
 html, body {
-height: 100%;
-width: 100vw;
+height: 540px;
+width: 1250px;
+}
+
+#container{
+  width: 1080px;;
+  height: 720px;
 }
 
 h1{
@@ -23,16 +27,18 @@ left:0;
 width:100%;
 max-height:5%;
 font-family: "Roboto";
-font-size: 16pt;
+font-size: 15pt;
 }
+
 #explication{
   font-size: 11pt;
   font-family: "Roboto"; 
 }
+
 #map {
 position: relative;
 top: 5px;
-height: 480px;
+height: 500px;
 width: 720px;
 margin: 5px;
 background-color: #f5f5dc;
@@ -45,15 +51,24 @@ border: 1px solid #666;
 }
 
 #sidebar {
+display: inline-block;
 position: relative;
 padding: 5px;
 margin: 5px;
-top: -480px;
-left: 720px;
-height: 480px;
-width: 420px;
+top: -505px;
+left: 722px;
+height: 500px;
+width: 430px;
 background-color: #f0f0f0;
 border: 1px solid #666;
+}
+
+#footer {
+  position: relative;
+  left: 275px;
+  top: 13px;
+  font-size: 8pt;
+  margin: 1px;
 }
 
 #btnGetLoc {

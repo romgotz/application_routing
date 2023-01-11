@@ -5,7 +5,7 @@
     <meta charset="utf8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-    <title>{% block title %} {% endblock %} - VeloRouter Lausanne </title>
+    <title>{% block title %} {% endblock %} </title>
 
     <!-- Link to packages and stylesheet : Bootstrap, leaflet, geosearch -->
 
@@ -34,38 +34,11 @@
 </head>
 <!-- Navigation bar and links to different pages of the web application -->
 <body>
-    <!-- 
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    
-    <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('opening_page') }}">LausanneVeloRouting</a>
-        
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-        </button>
-        
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav">
-                <li class="nav-item">
-                  <a class="nav-link" href="{{ url_for('about') }}">About</a>
-                </li>
-            </ul>
-            </div>
-    </nav>
-    -->
+
     <div class="container">
         {% block content %} {% endblock %}
     </div>
 
-    <div id="footer" class="copyright">
-        2022 © Romain Götz
-        <a href="https://github.com/romgotz/application_routing"><i class="bi-github"></i> Code source </a>
-        <a href="{{ url_for('static', filename='about.html') }}"> À propos </a>
-        <br>
-        <p>Source des données: Ville de Lausanne 2022 ; OSM ; Swisstopo <br>
-        <br>
-  
-    </div>
     <!-- Link to jquery -->
     <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js' integrity='sha512-aVKKRRi/Q/YV+4mjoKBsE4x3H+BkegoM/em46NNlCqNTmUYADjBbeNefNxYV7giUp0VxICtqdrbqU7iVaeZNXA==' crossorigin='anonymous'></script>
 

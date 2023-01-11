@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h1> {% block title %} VéloRouter Lausanne : Proposition d'itinéraires les plus sûrs et confortables {%endblock%}</h1>
+<h1> {% block title %} VéloRouter Lausanne : Proposition d'itinéraire sûr et confortable {%endblock%}</h1>
 
 <script> const border = {{ border|tojson }}</script>
 
@@ -13,70 +13,57 @@
     <!-- Create div sidebar that will be on the right part with searching bar and explications --> 
     <div id="sidebar" class="sidebar">
 
-        <!-- Explication about the web app -->
-        <p id="explication"> Cette application permet de déterminer un itinéraire à vélo le plus sûr et le plus confortable possible en tenant compte de la pente, les aménagements cyclables en lien avec la vitesse et le trafic, des poids lourds et de l'environnement. 
-        Définissez votre point de départ et votre destination pour démarrer l'application. Vous pouvez aussi chosir d'intégrer ou non la pente et les intersections (soyez alors patient·e, l'algorithme est bien plus lent)</p>
-        <!-- Add different possibilities to determine start and destination -->
+            <!-- Explication about the web app -->
+            <p id="explication"> Cette application permet de déterminer un itinéraire à vélo le plus sûr et le plus confortable possible pour la ville de Lausanne (zone délimitée en noire). Le trajet proposé tient compte de la pente, des aménagements cyclables avec la vitesse et le trafic, des poids lourds, de l'environnement et des intersections. 
+            Définissez votre point de départ et votre destination. Vous pouvez aussi chosir d'intégrer ou non la pente et les intersections (soyez alors patient·e, l'algorithme est bien plus lent).</p>
+            <!-- Add different possibilities to determine start and destination -->
             <!-- Start button -->
             <div class="input-group mb-3">
                 <!-- Prepend, what is in front (image of marker) -->
                 <div class="input-group-prepend">
-                    <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dep.svg" width="45" height="18"> </span>
+                    <span class="input-group-text" id="basic-addon1" w-45> <img src="static/img/marker_dep.svg" width="55" height="25"> </span>
                 </div>
                 <!-- Geosearcher text box from Leaflet Geosearch-->
                 <form id="geosearch-depart">
-                    <input type="text" placeholder="Départ (Ou clique sur carte/bouton)" value="" size="30">
+                    <input type="text" placeholder="Départ (Ou clique sur carte/bouton)" value="" size="27" class="form-control">
                 </form>
                 <!-- Append, what is after text box ; button to get localisation (image of localisation) -->
-                <div class="input-group-append">
+                <div class="input-group-append" w-45>
                     <button id="btnGetLocStart" formmethod="post" class="btn btn-outline-secondary current-location" type="button" title="Centrer sur votre position" height="30">
-                    <img src="/static/img/current-location.svg" width="15" height="15">
+                    <img src="/static/img/current-location.svg" width="18" height="18">
                     </button>
                 </div>
-            </div> <!-- End start button -->
-
-            <!-- Add a button to invert lat/lon. The function is defined in js file   -->
-            <div class="horizontal-center">
+            </div><div class="center"> <!-- Add a button to invert lat/lon -->
                 <button id="invertBtn"  type="button" title="Inverser départ et destination" onclick=invertLatLng()>
                     <img src="/static/img/reverse_icone.svg" width="30" height="30">
                 </button>
             </div>    
-            <br>
             <!-- Destination button -->
             <div class="input-group mb-3"> 
                 <!-- Prepend, what is in front (image of marker) -->
                 <div class="input-group-prepend">
-                    <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dest.svg" width="45" height="18"> </span>
+                    <span class="input-group-text" id="basic-addon1"> <img src="static/img/marker_dest.svg" width="55" height="25"> </span>
                 </div>
                 <!-- Geosearcher text box from Leaflet Geosearch-->
                 <form id="geosearch-destination">
-                    <input type="text" placeholder="Destination (Ou clique sur carte/bouton)" value="" size="30">
+                    <input type="text" placeholder="Arrivée (Ou clique sur carte/bouton)" value="" size="27" class="form-control">
                 </form>
                 <!-- Append, what is after text box ; button of get localisation (image of localisation) -->
                 <div class="input-group-append">
                     <button id="btnGetLocDest" class="btn btn-outline-secondary current-location" type="button" title="Centrer sur votre position">
-                    <img src="/static/img/current-location.svg" width="15" height="15">
+                    <img src="/static/img/current-location.svg" width="18" height="18">
                     </button>
                 </div>
-            </div> <!-- End of destination button -->
-
-            <!-- Add a reset button for lat/lon/path. the function is defined in js file   -->
-            <div class="horizontal-center">
+                </div><div class="center"> <!-- Add a reset button -->
                 <button id="resetBtn"  type="button" title="Remettre à zéro l'application" onclick=reset()>
                 Recommencer
                 </button>
             </div>
-            <br>
-            <!-- To choose what is display in the 
-            <input type="checkbox" id="legend_CQ" onchange="processCheck(this)" name="coloring" value="legend_CQ"> Qualité cyclable <br>
-            <input type="checkbox" id="legend_grade" onchange="processCheck(this)" name="coloring" value="legend_grade"> Pente <br>
-            <input type="checkbox" id="legend_infra" onchange="processCheck(this)" name="coloring" value="legend_infra"> Qualité infrastructures cyclables<br>
-            -->
+
             <!-- Checkboxes to personalize routing data-->
             <!-- VAE -->
-            <br>
-            <h6> Personnalisation paramètres pour routing </h6>
-            <div class="form-check form-switch"> {# Have to specify this class to have bootstrap button #}
+            <h6> Paramètres routing </h6>
+            <div class="form-check form-switch" align-item="center"> {# Have to specify this class to have bootstrap button #}
                 <!-- Pente -->
                 <input class="form-check-input" id="pente" type="checkbox" role="switch" name="settings" value="pente" checked>
                 <label class="form-check-label"> Pente </label>
@@ -85,6 +72,13 @@
                 <input class="form-check-input" id="intersections" type="checkbox" role="switch" name="settings" value="intersections">
                 <label class="form-check-label"> Intersections </label>
 
+            </div>
+  
+
+            <div id="footer" class="copyright">
+                2022 © Romain Götz
+                <a href="https://github.com/romgotz/application_routing" title="Code source" target="_blank"><i class="bi-github"></i> <img src="static/img/icone_git.svg" width="20" height="20" class="infos"></a>
+                <a href="{{ url_for('about') }}"> <img src="static/img/info_icone.svg" width="20" height="20" class="infos"> </a>
             </div>
 
     </div> <!-- end of sidebar -->
