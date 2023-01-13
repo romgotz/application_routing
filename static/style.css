@@ -5,6 +5,13 @@
   margin: 5px;
   left: 50%;
 }
+#params_routing{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 5px;
+  left: 50%;
+}
 body {
 padding: 5px;
 margin: 3px;
@@ -65,10 +72,11 @@ border: 1px solid #666;
 
 #footer {
   position: relative;
-  left: 275px;
+  left: 260px;
   top: 13px;
   font-size: 8pt;
   margin: 1px;
+  padding:1px;
 }
 
 #btnGetLoc {

@@ -14,7 +14,7 @@
     <div id="sidebar" class="sidebar">
 
             <!-- Explication about the web app -->
-            <p id="explication"> Cette application permet de déterminer un itinéraire à vélo le plus sûr et le plus confortable possible pour la ville de Lausanne (zone délimitée en noire). Le trajet proposé tient compte de la pente, des aménagements cyclables avec la vitesse et le trafic, des poids lourds, de l'environnement et des intersections. 
+            <p id="explication"> Cette application permet de déterminer un itinéraire à vélo le plus sûr et le plus confortable possible pour la ville de Lausanne (zone en noire). Le trajet proposé tient compte de la pente, des aménagements cyclables avec la vitesse et le trafic, des poids lourds, de l'environnement et des intersections.  
             Définissez votre point de départ et votre destination. Vous pouvez aussi chosir d'intégrer ou non la pente et les intersections (soyez alors patient·e, l'algorithme est bien plus lent).</p>
             <!-- Add different possibilities to determine start and destination -->
             <!-- Start button -->
@@ -62,23 +62,24 @@
 
             <!-- Checkboxes to personalize routing data-->
             <!-- VAE -->
-            <h6> Paramètres routing </h6>
-            <div class="form-check form-switch" align-item="center"> {# Have to specify this class to have bootstrap button #}
-                <!-- Pente -->
-                <input class="form-check-input" id="pente" type="checkbox" role="switch" name="settings" value="pente" checked>
-                <label class="form-check-label"> Pente </label>
-                <br>
-                <!-- Intersections do not check it 1st for rapidity -->
-                <input class="form-check-input" id="intersections" type="checkbox" role="switch" name="settings" value="intersections">
-                <label class="form-check-label"> Intersections </label>
+            <div class="params_routing">
+                <h6> Paramètres routing </h6>
+                <div class="form-check form-switch"> {# Have to specify this class to have bootstrap button #}
+                    <!-- Pente -->
+                    <input class="form-check-input" id="pente" type="checkbox" role="switch" name="settings" value="pente" checked>
+                    <label class="form-check-label"> Pente </label>
+                    <br>
+                    <!-- Intersections do not check it 1st for rapidity -->
+                    <input class="form-check-input" id="intersections" type="checkbox" role="switch" name="settings" value="intersections">
+                    <label class="form-check-label"> Intersections </label>
 
+                </div>
             </div>
-  
 
             <div id="footer" class="copyright">
                 2022 © Romain Götz
-                <a href="https://github.com/romgotz/application_routing" title="Code source" target="_blank"><i class="bi-github"></i> <img src="static/img/icone_git.svg" width="20" height="20" class="infos"></a>
-                <a href="{{ url_for('about') }}"> <img src="static/img/info_icone.svg" width="20" height="20" class="infos"> </a>
+                <a href="https://github.com/romgotz/application_routing" title="Code source" target="_blank" style="margin-left: 1em"><i class="bi-github"></i> <img src="static/img/icone_git.svg" width="20" height="20" class="infos"></a>
+                <a href="{{ url_for('about') }}" style="margin-left: 0.5em" target="_blank" title="Plus d'informations"> <img src="static/img/info_icone.svg" width="20" height="20" class="infos"> </a>
             </div>
 
     </div> <!-- end of sidebar -->
