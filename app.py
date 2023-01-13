@@ -28,7 +28,7 @@ app.debug = True
 # Read csv from github links
 # Cost_intersection 
 git_path_cost_inter = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/cost_intersection.csv'
-cost_intersection = pd.read_csv(git_path_cost_inter, encoding='utf-8', sep=';')
+cost_intersection = pd.read_csv(git_path_cost_inter, encoding='utf-8', sep=',')
 # Dir_edges list
 git_path_dir_edgelsit = r'https://raw.githubusercontent.com/romgotz/application_routing/master/static/data/edgelist_network_epsg32632.csv'
 dir_edges_list = pd.read_csv(git_path_dir_edgelsit, encoding='utf-8', sep=';')
@@ -249,53 +249,73 @@ def get_itineraries():
         target = get_nearest_node(kdTree=kd_tree, x=dest_lat, y=dest_lon)
         print("Determining the shortest path.")
         start_time = time.time()
+        
         # For intersections and grade taken into account (onw SP algo)
         if ('intersections' in settings ):
-            print("Using own code to determine shortest path")
-            path_inter = get_shortest_path(dwg=G,
-            source=start,
-            target=target,
-            edge_weight=pd_col,
-            intersection_cost = cost_intersection,
-            verbose=False)
-            nodes_path = path_inter['path']
-            distance = path_inter['weight']
-            print("The weight is %s " %(distance))
-            print("The path algorithm with intersection and grade took [seconds]", time.time()- start_time)
-        # For intersections, but without the grade
-        elif (('intersections' in settings) & ('pente' not in settings)):
-            # Update  perceived distance and cost columns for the algorithm 
-            pd_col = 'PD_noGR'
-            tc_col = 'TC_noGR'
-            path_inter = get_shortest_path(dwg=G,
-            source=start,
-            target=target,
-            edge_weight=pd_col,
-            intersection_cost = cost_intersection,
-            verbose=False)
-            nodes_path = path_inter['path']
-            distance = path_inter['weight']
-            print("The total weight is %s " %(distance))
-            print("The path algorithm with intersection but without grade took [seconds]", time.time()- start_time)
+            if('pente' in settings):
+                print("Settings is with intersections and grade")
+                path_inter = get_shortest_path(dwg=G,
+                source=start,
+                target=target,
+                edge_weight=pd_col,
+                intersection_cost = cost_intersection,
+                verbose=False)
+                nodes_path = path_inter['path']
+                per_dist = path_inter['weight']
+                print("The total perceived distance is %s " %(per_dist))
+                print("The path algorithm with intersection and grade took [seconds]", time.time()- start_time)
+                # Comparing with shortest path based on length
+                path_shortest = nx.single_source_dijkstra(G, source=start, target=target, cutoff=None, weight='length')
+                orig_dist = path_shortest[0]
+                print("The path for shortest path (based on length) is %s. The ratio between normal distance and perceived ditance is %s" %(orig_dist,(per_dist/orig_dist)))
+            # For intersections, but without the grade
+            else:
+                print("Settings is with intersections but no grade")
+                # Update  perceived distance and cost columns for the algorithm 
+                pd_col = 'PD_noGR'
+                tc_col = 'TC_noGR'
+                path_inter = get_shortest_path(dwg=G,
+                source=start,
+                target=target,
+                edge_weight=pd_col,
+                intersection_cost = cost_intersection,
+                verbose=False)
+                nodes_path = path_inter['path']
+                per_dist = path_inter['weight']
+                print("The total perceived distance is %s " %(per_dist))
+                print("The path algorithm with intersection but without grade took [seconds]", time.time()- start_time)
+                # Comparing with shortest path based on length
+                path_shortest = nx.single_source_dijkstra(G, source=start, target=target, cutoff=None, weight='length')
+                orig_dist = path_shortest[0]
+                print("The path for shortest path (based on length) is %s. The ratio between normal distance and perceived ditance is %s" %(orig_dist,(per_dist/orig_dist)))
+
         # No intersection and no grade
         elif ('pente' not in settings):
+            print("Settings is without intersections nor grade")
             # Update pd and tc cols for the SP algo
             pd_col = 'PD_noGR'
             tc_col = 'TC_noGR'
             path = nx.single_source_dijkstra(G, source=start, target=target, cutoff=None, weight=pd_col)
-            distance = path[0]
+            per_dist = path[0]
             nodes_path = path[-1]
-            print("The perceived distance is (in km)", distance/1000)
+            print("The perceived distance is (in km)", per_dist/1000)
             print("The path algorithm without grade or intersections (using networkx) took [seconds]", time.time()- start_time)
-
+            # Comparing with shortest path based on length
+            path_shortest = nx.single_source_dijkstra(G, source=start, target=target, cutoff=None, weight='length')
+            orig_dist = path_shortest[0]
+            print("The path for shortest path (based on length) is %s. The ratio between normal distance and perceived ditance is %s" %(orig_dist,(per_dist/orig_dist)))
         # No intersection with grade, choices by default
-        else: 
+        else:
+            print("Settings is with grade but without intersections")
             path = nx.single_source_dijkstra(G, source=start, target=target, cutoff=None, weight=pd_col)
-            distance = path[0]
+            per_dist = path[0]
             nodes_path = path[-1]
-            print("The perceived distance is (in km)", distance/1000)
+            print("The perceived distance is (in km)", per_dist/1000)
             print("The path algorithm with default settings (using networkx) took [seconds]", time.time()- start_time)
-
+            # Comparing with shortest path based on length
+            path_shortest = nx.single_source_dijkstra(G, source=start, target=target, cutoff=None, weight='length')
+            orig_dist = path_shortest[0]
+            print("The path for shortest path (based on length) is %s. The ratio between normal distance and perceived ditance is %s" %(orig_dist,(per_dist/orig_dist)))
         # Determine the edges corresponding to the nodes in the path
         # Define a df that will receive the edges and necessary data 
         params_to_keep = ['u', 'v','name', 'grade', 'Am_cycl', 'DWV_ALLE','C_IC_DWV','TC_DWV', 'PD_DWV', 'TC_noGR', 'PD_noGR', 'geometry']
