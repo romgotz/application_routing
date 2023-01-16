@@ -5,10 +5,10 @@ Cette application a été réalisée dans le cadre de mon Mémoire de Master pou
 
 L'application a pour but de proposer un itinéraire pour un déplacement à vélo qui favorise la sécurité et le confort.
 Pour déterminer ces derniers, différentes variables sont prises en comptes :
-<li> La pente
-<li> Les infrastructures cyclables en lien avec la charge de trafic et la limite de vitesse
-<li> La présence de trafic de poids lourds
-<li> Le caractère agréable de l'environnement (zones vertes et étendues d'eau)
+  <li> La pente
+  <li> Les infrastructures cyclables en lien avec la charge de trafic et la limite de vitesse
+  <li> La présence de trafic de poids lourds
+  <li> Le caractère agréable de l'environnement (zones vertes et étendues d'eau)
 
 Pour représenter la qualité cyclable des rues, c'est le concept de distance perçue qui est utilisée. Les segements composants une route possèdent une distance originelle qui va être mulitpliée par un coût multiplicateur pour donner la distance perçue. Cette dernière est plus grande que la distance originelle dans le cas d'une mauvaise qualité cyclable ; les conditions de sécurité et de confort sont négatifs ce qui donne l'impression que la rue s'allonge. Au contraire, une rue avec une bonne qualité cyclable donnera l'impression d'être plus courte ; la distance perçue est plus courte que la distance originelle. 
 
