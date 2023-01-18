@@ -1,5 +1,18 @@
 """
-This algorithm takes a bikeway network and evaluates according to some criteria.
+This algorithm takes a bikeway network and evaluates according to some criteria. It requires two files representing the network : the edges and the nodes. The edges must contain columns about :
+    - start node
+    - end node 
+    - length of edge
+    - cycling infrastructure
+    - way of the cycling infra
+    - the trafic 
+    - the maxspeed
+    - the slope
+    - the % of aquatic and green areas
+    - the number of lanes
+    
+    
+Written by Romain Götz in September 2022
 """
 
 from math import exp
@@ -91,22 +104,11 @@ def IC_cost(traffic,maxspeed,Am_cycl, speed_zone):
     # Trottoir autorise aux velos
     elif Am_cycl == 'Trottoir':
         infra_cost = 0.9
-    # Zone pietonne ouverte aux velos 
-    # elif ((Am_cycl == 'Voie de liaison') & (speed_zone == 'Zone pietonne')) | (Am_cycl == 'ZP avec velo'):
     elif Am_cycl == 'ZP autorisee velos':
         infra_cost = 0.95
-    # Voie de liaison dans zone pietonne "large" (cout moins eleve)
-    # elif (Am_cycl == 'ZP pr velo') | (Am_cycl == 'Zp pr velo') | (Am_cycl == 'ZP pour velo') :
-    #    infra_cost = 0.9
     # Zone de rencontre
     elif (speed_zone == 'Zone de rencontre') | (Am_cycl == 'Zone de rencontre'):
         infra_cost = 0.9
-    # Autres voie de liaison 
-    # elif (Am_cycl == 'Voie de liaison') | (Am_cycl == 'Voie liaison') | (Am_cycl == 'Voie de Liaison'):
-    #    infra_cost = 0.9 
-    # Raccourci avec voie de liaison
-    # elif (Am_cycl == 'Raccourci VL'):
-    #    infra_cost = 0.9
     # Bike lane 
     elif Am_cycl == 'Bande cyclable':
         if maxspeed ==  30:
@@ -188,11 +190,11 @@ def avg_speed_cycling(gradient):
 
     return avg_speed
 
-fp_edges = r'data/input/osm_complete_edges_nodp_complete_data_epsg32632.shp'
-fp_nodes = r'C:/Users/romai/Desktop/memoire/Pre_processing/python/evaluation_cycling_quality/data/input/osm_complete_nodes_epsg32632.shp'
+
 # read shp file
 network = gpd.read_file(fp_edges, encoding='utf-8')
 nodes = gpd.read_file(fp_nodes, encoding='utf-8')
+
 
 # print(network.columns.values.tolist())
 # ['u', 'v', 'osmid', 'oneway', 'lanes', 'name', 'highway', 'maxspeed', 'length', 'grade', 'service', 'junction', 'bridge', 'tunnel', 'speed_zone', 'Am_cycl', 'Am_Direct', 'Am_cycl_2', 'Am_Dir_2', 'DWV_ALLE', 'DWV_PW', 'DWV_LI', 'DWV_LW', 'DWV_LZ', 'MSP_ALLE', 'MSP_PW', 'MSP_LI', 'MSP_LW', 'MSP_LZ', 'ASP_ALLE', 'ASP_PW', 'ASP_LI', 'ASP_LW', 'ASP_LZ', 'pour100_GW', 'key_edge', 'geometry']
@@ -216,13 +218,44 @@ cols = ['u', 'v']
 network[cols] = network[cols].applymap(np.int64)
 network[cols] = network[cols].applymap(np.int64)
 
-# Remove some unecessary edges
-network = network.loc[ ~( (network['u']==572524517) & (network['v'] ==310281260) )]
-network = network.loc[ ~( (network['u']==268958642) & (network['v'] ==565073891) )]
-network = network.loc[ ~( (network['u']==316734492) & (network['v'] ==252983858) )]
-
-# Grade column : make sure the slope values are numeric 
+# Grade column : make sure the slope values are numeric and recalculate them to be sure of their sign 
 network['grade'] = pd.to_numeric(network['grade'])
+
+# Prepare nodes data
+nodes.drop(columns=['field_1', 'Unnamed_ 0'])
+# Round omsid value ups and downs if saved with decimals
+nodes['osmid'] = nodes['osmid'].round()
+# Then change the data types of the columns into int
+cols = ['osmid']
+nodes[cols] = nodes[cols].applymap(np.int64)
+
+print("Calculating the slope for every edge to avoid errors of way")
+# Apparently some slope are inversed, so calculate them again. 
+for i in network.index: # Iterates over every edge of the network
+    elevation_col = -3
+    # Select u from edge
+    edge = network.loc[network.index == i]
+    u = edge['u'].item()
+    v = edge['v'].item()
+    length = edge['length'].item()
+    # Select corresponding nodes
+    node_u = nodes[nodes['osmid'] == u]
+    node_v = nodes[nodes['osmid']== v]
+    # select the elevation
+    elevation_u = node_u['elevation'].item()
+    elevation_v = node_v['elevation'].item()
+    # Calculate slope from u to v
+    slope_uv = (elevation_v - elevation_u) / length
+    # The other way
+    slope_vu = (elevation_u - elevation_v) / length
+    # update the values in the edges dataframe
+    # u to v way
+    network.loc[(network['u'] == u) & (network['v']==v), 'GR_uv'] = slope_uv
+    network.loc[(network['u'] == u) & (network['v']==v), 'GR_vu'] = slope_vu
+
+network['GR_uv'] = network['GR_uv'].round(4)
+network['GR_vu'] = network['GR_vu'].round(4)
+network.drop(columns=['grade'], inplace=True)
 
 # Maxspeed column : some maxspeed as lists 
 # Take the highest maxspeed because it is the one that has the most negative influence 
@@ -302,13 +335,10 @@ network["HV_ASP"] = network["HV_ASP"].round(2)
 precision = 3
 
 # 1.1 Gradient cost
-# Set a max value for the slope of 10%
-network.loc[network['grade'] > 0.1, 'grade'] = 0.1
-network.loc[network['grade'] < -0.1, 'grade'] = -0.1
 
-# The slope value is different if goes from u to v o v to u, so create two columns
-network['GR_uv'] = network['grade']
-network['GR_vu'] = - network['grade']
+# Set a max value for the slope of 10%
+network.loc[network['GR_uv'] > 0.1, 'GR_uv'] = 0.1
+network.loc[network['GR_vu'] < -0.1, 'GR_vu'] = -0.1
 
 # Apply the gradient cost function to the two columns containing slope and store result in two new columns
 network[['C_GR_uv', 'C_GR_vu']] = network[['GR_uv', 'GR_vu']].apply(gradient_cost).round(precision)
@@ -373,67 +403,9 @@ network.loc[(network['Am_Dir_2'] == 'v to u') , 'C_IC_vu_DWV'] = network.apply(l
 # Checking if there are some missing cost for the infrastructure (as it is the "basis" for the PD)
 missing_IC_cost = network.loc[(network['C_IC_uv_DWV'].isna()) | (network['C_IC_vu_DWV'].isna()) ]
 
-# 1.4.2 For trafic MSP (monday to friday ; 7-8 am)
-# First apply IC_cost function for every row without taking into account possible infrastructure (Am_cycl defined as 'Aucun')
-# U TO V way
-network['C_IC_uv_MSP'] = network.apply(lambda x: IC_cost(x["MSP_ALLE"], x["maxspeed"], 'Aucun', x["speed_zone"]), axis = 1).round(precision)
-# V TO U way
-network['C_IC_vu_MSP'] = network.apply(lambda x: IC_cost(x["MSP_ALLE"], x["maxspeed"], 'Aucun', x["speed_zone"]), axis = 1).round(precision)
-
-# Then we apply again this IC_cost function but we take into account cycling infrastructure. It will update values for edges with infrastructure
-# cycling infrastructure in U TO V way and in both sides
-network.loc[(network['Am_Direct'] == 'u to v') | (network['Am_Direct'] == 'Both'), 'C_IC_uv_MSP'] = network.apply(lambda x: IC_cost(x["MSP_ALLE"], x["maxspeed"], x["Am_cycl"], x["speed_zone"]), axis = 1).round(precision)
-
-# cycling infrastructure in V TO U way and in both sides
-network.loc[(network['Am_Direct'] == 'v to u') | (network['Am_Direct'] == 'Both'), 'C_IC_vu_MSP'] = network.apply(lambda x: IC_cost(x["MSP_ALLE"], x["maxspeed"], x["Am_cycl"], x["speed_zone"]), axis = 1).round(precision)
-
-# Now do the same with the 2nd column of cycling infrastructure 
-# cycling infrastructure in U TO V way
-network.loc[(network['Am_Dir_2'] == 'u to v') , 'C_IC_uv_MSP'] = network.apply(lambda x: IC_cost(x["MSP_ALLE"], x["maxspeed"], x["Am_cycl_2"], x["speed_zone"]), axis = 1).round(precision)
-
-# cycling infrastructure in V TO U way and in both sides
-network.loc[(network['Am_Dir_2'] == 'v to u') , 'C_IC_vu_MSP'] = network.apply(lambda x: IC_cost(x["MSP_ALLE"], x["maxspeed"], x["Am_cycl_2"], x["speed_zone"]), axis = 1).round(precision)
-
-# Checking if there are some missing cost for the infrastructure (as it is the "basis" for the PD)
-missing_IC_cost = network.loc[network['C_IC_uv_MSP'].isna()]
-missing_IC_cost_vu = network.loc[network['C_IC_vu_MSP'].isna()]
-assert ( len(missing_IC_cost) + len(missing_IC_cost_vu) ) == 0
-
-
-# 1.4.3 For trafic ASP (monday to friday ; 17-18 am)
-# First apply IC_cost function for every row without taking into account possible infrastructure (Am_cycl defined as 'Aucun')
-# U TO V way
-network['C_IC_uv_ASP'] = network.apply(lambda x: IC_cost(x["ASP_ALLE"], x["maxspeed"], 'Aucun', x["speed_zone"]), axis = 1).round(precision)
-# V TO U way
-network['C_IC_vu_ASP'] = network.apply(lambda x: IC_cost(x["ASP_ALLE"], x["maxspeed"], 'Aucun', x["speed_zone"]), axis = 1).round(precision)
-
-# Then we apply again this IC_cost function but we take into account cycling infrastructure. It will update values for edges with infrastructure
-# cycling infrastructure in U TO V way and in both sides
-network.loc[(network['Am_Direct'] == 'u to v') | (network['Am_Direct'] == 'Both'), 'C_IC_uv_ASP'] = network.apply(lambda x: IC_cost(x["ASP_ALLE"], x["maxspeed"], x["Am_cycl"], x["speed_zone"]), axis = 1).round(precision)
-
-# cycling infrastructure in V TO U way and in both sides
-network.loc[(network['Am_Direct'] == 'v to u') | (network['Am_Direct'] == 'Both'), 'C_IC_vu_ASP'] = network.apply(lambda x: IC_cost(x["ASP_ALLE"], x["maxspeed"], x["Am_cycl"], x["speed_zone"]), axis = 1).round(precision)
-
-# Now do the same with the 2nd column of cycling infrastructure 
-# cycling infrastructure in U TO V way
-network.loc[(network['Am_Dir_2'] == 'u to v') , 'C_IC_uv_ASP'] = network.apply(lambda x: IC_cost(x["ASP_ALLE"], x["maxspeed"], x["Am_cycl_2"], x["speed_zone"]), axis = 1).round(precision)
-
-# cycling infrastructure in V TO U way and in both sides
-network.loc[(network['Am_Dir_2'] == 'v to u') , 'C_IC_vu_ASP'] = network.apply(lambda x: IC_cost(x["ASP_ALLE"], x["maxspeed"], x["Am_cycl_2"], x["speed_zone"]), axis = 1).round(precision)
-
-# Checking if there are some missing cost for the infrastructure (as it is the "basis" for the PD)
-missing_IC_cost = network.loc[network['C_IC_uv_ASP'].isna()]
-missing_IC_cost_vu = network.loc[network['C_IC_vu_ASP'].isna()]
-assert ( len(missing_IC_cost) + len(missing_IC_cost_vu) ) == 0
-
-
 # 1.5 Calculate the cost for the edges in roundabout. Can only go from u to v in roundabout
 # 1.5.1 DWV trafic 
 network.loc[network['junction']=='roundabout', 'C_RA_DWV'] = network.apply(lambda x: roundabout_cost(trafic=x['DWV_ALLE'],maxspeed = x['maxspeed'], lanes=x['lanes']), axis = 1)
-# 1.5.2 MSP trafic 
-network.loc[network['junction']=='roundabout', 'C_RA_MSP'] = network.apply(lambda x: roundabout_cost(trafic=x['MSP_ALLE'],maxspeed = x['maxspeed'], lanes=x['lanes']), axis = 1)
-# 1.5.3 ASP trafic
-network.loc[network['junction']=='roundabout', 'C_RA_ASP'] = network.apply(lambda x: roundabout_cost(trafic=x['ASP_ALLE'],maxspeed = x['maxspeed'], lanes=x['lanes']), axis = 1)
 
 # 2. Determine total cost and the perceived distance
 # 2.1 DWV trafic
@@ -452,38 +424,6 @@ network.loc[network['oneway']=='False', 'TC_vu_DWV'] = network['C_HV_DWV'] + net
 network.loc[network['oneway']=='False', 'PD_vu_DWV'] = network['length']*network['TC_vu_DWV']
 network['PD_vu_DWV'] = network['PD_vu_DWV'].round(precision)
 
-# 2.2 MSP trafic
-# u to v way
-# Total cost
-network['TC_uv_MSP'] = network['C_HV_MSP'] + network ['B_GW'] + network['C_GR_uv'] + network['C_IC_uv_MSP']
-# update value for roundabout edges
-network.loc[network['junction']=='roundabout', 'TC_uv_MSP'] = network['C_RA_MSP'] # edges are only oneway in roundabout 
-# Perceived distance
-network['PD_uv_MSP'] = network['length']*network['TC_uv_MSP']
-network['PD_uv_MSP'] = network['PD_uv_MSP'].round(precision)
-
-# v to u way
-network.loc[network['oneway']=='False', 'TC_vu_MSP'] = network['C_HV_MSP'] + network ['B_GW'] + network['C_GR_vu'] + network['C_IC_vu_MSP'] 
-# Perceived distance
-network.loc[network['oneway']=='False','PD_vu_MSP'] = network['length']*network['TC_vu_MSP']
-network['PD_vu_MSP'] = network['PD_vu_MSP'].round(precision)
-
-# 2.3 ASP trafic
-# u to v way
-# Total cost
-network['TC_uv_ASP'] = network['C_HV_ASP'] + network ['B_GW'] + network['C_GR_uv'] + network['C_IC_uv_ASP']
-# update value for roundabout edges
-network.loc[network['junction']=='roundabout', 'TC_uv_ASP'] = network['C_RA_ASP'] # edges are only oneway in roundabout 
-# Perceived distance
-network['PD_uv_ASP'] = network['length']*network['TC_uv_ASP']
-network['PD_uv_ASP'] = network['PD_uv_ASP'].round(precision)
-
-# v to u way
-network.loc[network['oneway']=='False','TC_vu_ASP'] = network['C_HV_ASP'] + network ['B_GW'] + network['C_GR_vu'] + network['C_IC_vu_ASP'] 
-# Perceived distance
-network.loc[network['oneway']=='False','PD_vu_ASP'] = network['length']*network['TC_vu_ASP']
-network['PD_vu_ASP'] = network['PD_vu_ASP'].round(precision)
-
 # Define avg speed of biking according to slope 
 network['avg_speed_uv'] = network['GR_uv'].apply(avg_speed_cycling)
 network['avg_speed_vu'] = network['GR_vu'].apply(avg_speed_cycling)
@@ -494,17 +434,9 @@ network['tt_s_vu'] = network['length'] / (network['avg_speed_vu']/3.6)
 
 print("The total cost and pereceived distance have been evaluated for the 3 trafic situations")
 
-# Saving the evaluated network
-# in csv
-# network.to_csv('data/output/osm_edges_CQ_links_assessment_epsg32632.csv', sep=';')
-# in shp
-network.to_file('data/output/osm_edges_nodp_CQ_links_assessment_epsg32632.shp')  
+print("\n The cycling quality of the bike network has been evaluated and saved in csv. It took %s seconds" % (time.time() - start_time))
 
-print("\n The cycling quality of the bike network has been evaluated and saved. It took %s seconds" % (time.time() - start_time))
-
-# 3. Create again pandas edgelist
-# print(network.columns.values.tolist())
-# ['u', 'v', 'osmid', 'oneway', 'lanes', 'name', 'highway', 'maxspeed', 'length', 'grade', 'service', 'junction', 'bridge', 'tunnel', 'speed_zone', 'Am_cycl', 'Am_Direct', 'Am_cycl_2', 'Am_Dir_2', 'DWV_ALLE', 'DWV_PW', 'DWV_LI', 'DWV_LW', 'DWV_LZ', 'MSP_ALLE', 'MSP_PW', 'MSP_LI', 'MSP_LW', 'MSP_LZ', 'ASP_ALLE', 'ASP_PW', 'ASP_LI', 'ASP_LW', 'ASP_LZ', 'pour100_GW', 'geometry', 'HV_DWV', 'HV_MSP', 'HV_ASP', 'GR_uv', 'GR_vu', 'C_GR_uv', 'C_GR_vu', 'B_GW', 'C_HV_DWV', 'C_HV_ASP', 'C_HV_MSP', 'C_IC_uv_DWV', 'C_IC_vu_DWV', 'C_IC_uv_MSP', 'C_IC_vu_MSP', 'C_IC_uv_ASP', 'C_IC_vu_ASP', 'C_RA_DWV', 'C_RA_MSP', 'C_RA_ASP', 'TC_uv_DWV', 'PD_uv_DWV', 'TC_vu_DWV', 'PD_vu_DWV', 'TC_uv_MSP', 'PD_uv_MSP', 'TC_vu_MSP', 'PD_vu_MSP', 'TC_uv_ASP', 'PD_uv_ASP', 'TC_vu_ASP', 'PD_vu_ASP', 'avg_speed_uv', 'avg_speed_vu', 'tt_s_uv', 'tt_s_vu']
+# 3. Create pandas edgelist
 
 edges = network
 
@@ -527,7 +459,6 @@ print(missing_nodes)
 
 assert len(nodes) == len(uv_values)
 
-
 # Need to build the directed graph from scratch 
 # Separate oneways and twoways
 oneway = edges.loc[edges['oneway'].isin(['True', '1'])].copy().reset_index()
@@ -541,22 +472,20 @@ opposite_direction = twoway.copy()
 # make sure it s the same frame
 pd.testing.assert_frame_equal(twoway, opposite_direction)
 
-# 'DWV_ALLE', 'DWV_PW', 'DWV_LI', 'DWV_LW', 'DWV_LZ', 'MSP_ALLE', 'MSP_PW', 'MSP_LI', 'MSP_LW', 'MSP_LZ', 'ASP_ALLE', 'ASP_PW', 'ASP_LI', 'ASP_LW', 'ASP_LZ', 'pour100_GW', 'geometry', 'HV_DWV', 'HV_MSP', 'HV_ASP', 'GR_uv', 'GR_vu', 'C_GR_uv', 'C_GR_vu', 'B_GW', 'C_HV_DWV', 'C_HV_ASP', 'C_HV_MSP', 'C_IC_uv_DWV', 'C_IC_vu_DWV', 'C_IC_uv_MSP', 'C_IC_vu_MSP', 'C_IC_uv_ASP', 'C_IC_vu_ASP', 'C_RA_DWV', 'C_RA_MSP', 'C_RA_ASP', 'TC_uv_DWV', 'PD_uv_DWV', 'TC_vu_DWV', 'PD_vu_DWV', 'TC_uv_MSP', 'PD_uv_MSP', 'TC_vu_MSP', 'PD_vu_MSP', 'TC_uv_ASP', 'PD_uv_ASP', 'TC_vu_ASP', 'PD_vu_ASP', 'avg_speed_uv', 'avg_speed_vu', 'tt_s_uv', 'tt_s_vu'
-
 # the first two way df is from u to v and the 2nd two way df is for v to u
 # For the U TO V, can drop columns related to v to u information
-cols_drop_vu = ['GR_vu', 'C_GR_vu', 'C_IC_vu_DWV','C_IC_vu_MSP','C_IC_vu_ASP', 'TC_vu_DWV','TC_vu_ASP', 'TC_vu_MSP', 'PD_vu_DWV','PD_vu_ASP', 'PD_vu_MSP', 'tt_s_vu', 'avg_speed_vu']
+cols_drop_vu = ['GR_vu', 'C_GR_vu', 'C_IC_vu_DWV', 'TC_vu_DWV','PD_vu_DWV', 'tt_s_vu', 'avg_speed_vu']
 twoway.drop(columns=cols_drop_vu, inplace=True)
 # Rename columns too (get rid of u to v specification)
-cols_rename_uv = {'GR_uv': 'slope', 'C_GR_uv':'C_GR', 'C_IC_uv_DWV': 'C_IC_DWV','C_IC_uv_MSP':'C_IC_MSP','C_IC_uv_ASP':'C_IC_ASP', 'TC_uv_DWV':'TC_DWV','TC_uv_ASP':'TC_ASP', 'TC_uv_MSP':'TC_MSP', 'PD_uv_DWV':'PD_DWV','PD_uv_ASP':'PD_ASP', 'PD_uv_MSP':'PD_MSP', 'tt_s_uv':'tt_s', 'avg_speed_uv':'avg_speed'}
+cols_rename_uv = {'GR_uv': 'grade', 'C_GR_uv':'C_GR', 'C_IC_uv_DWV': 'C_IC_DWV', 'TC_uv_DWV':'TC_DWV', 'PD_uv_DWV':'PD_DWV','tt_s_uv':'tt_s', 'avg_speed_uv':'avg_speed'}
 twoway = twoway.rename(columns=cols_rename_uv)
 
 # For the v to u way
 # drop columns for u to v originally 
-cols_drop_uv = ['GR_uv', 'C_GR_uv', 'C_IC_uv_DWV','C_IC_uv_MSP','C_IC_uv_ASP', 'TC_uv_DWV','TC_uv_ASP', 'TC_uv_MSP', 'PD_uv_DWV','PD_uv_ASP', 'PD_uv_MSP', 'tt_s_uv', 'avg_speed_uv']
+cols_drop_uv = ['GR_uv', 'C_GR_uv', 'C_IC_uv_DWV', 'TC_uv_DWV','PD_uv_DWV', 'tt_s_uv', 'avg_speed_uv']
 opposite_direction.drop(columns=cols_drop_uv, inplace=True)
 # Rename columns : exchange u and v column and remove v to u specification !! need to take v_to_u columns (that becomes u to v now)
-cols_rename_vu = {'u':'v','v':'u','GR_vu': 'slope', 'C_GR_vu':'C_GR', 'C_IC_vu_DWV': 'C_IC_DWV','C_IC_vu_MSP':'C_IC_MSP','C_IC_vu_ASP':'C_IC_ASP', 'TC_vu_DWV':'TC_DWV','TC_vu_ASP':'TC_ASP', 'TC_vu_MSP':'TC_MSP', 'PD_vu_DWV':'PD_DWV','PD_vu_ASP':'PD_ASP', 'PD_vu_MSP':'PD_MSP', 'tt_s_vu':'tt_s', 'avg_speed_vu':'avg_speed'}
+cols_rename_vu = {'u':'v','v':'u','GR_vu': 'grade', 'C_GR_vu':'C_GR', 'C_IC_vu_DWV': 'C_IC_DWV', 'TC_vu_DWV':'TC_DWV', 'PD_vu_DWV':'PD_DWV', 'tt_s_vu':'tt_s', 'avg_speed_vu':'avg_speed'}
 opposite_direction = opposite_direction.rename(columns=cols_rename_vu)
 
 # ONEWAY : retake what was done for u v for twoways 
@@ -578,8 +507,3 @@ directed_edges = directed_edges.rename(columns = {'level_0':'key'})
 print(directed_edges.columns.values.tolist())
 
 print("The complete directedgraph has %s edges and %s nodes" % (len(directed_edges), len(nodes)))
- 
-#Saving pandas edgelist of directed network
-# directed_edges.to_file('data/output/osm_edges_dp_CQ_links_assessment_epsg32632.shp')
-#nodes.to_file('data/output/osm_nodes_epsg32632.shp')
-

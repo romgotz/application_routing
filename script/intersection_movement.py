@@ -11,6 +11,8 @@ import pandas as pd
 import numpy as np 
 import geopandas as gpd
 from math import atan2, degrees, pi
+import itertools
+
 
 
 def angle_btw_3points(x_anf,y_anf, x_in, y_in, x_ant, y_ant):
@@ -49,18 +51,22 @@ precision = 3
 
 # 1. Downloading data
 # file path !!! To change and adapt with files online
-fp_edges = r'C:/Users/romai/Desktop/memoire/Pre_processing/python/evaluation_cycling_quality/data/input/osm_complete_edges_nodp_complete_data_epsg32632.shp'
-fp_nodes = r'C:/Users/romai/Desktop/memoire/Pre_processing/python/evaluation_cycling_quality/data/input/osm_complete_nodes_epsg32632.shp'
+fp_edges = r'static/data/edgelist_network_epsg32632.csv'
+fp_nodes = r'static/data/nodes_network_epsg32632.csv'
 # read shp file
-edges = gpd.read_file(fp_edges, encoding='utf-8')
-nodes = gpd.read_file(fp_nodes, encoding='utf-8')
+# Dir_edges list
+edges = pd.read_csv(fp_edges, encoding='utf-8', sep=';')
+# Nodes
+nodes = pd.read_csv(fp_nodes, encoding='utf-8', sep=';')
+
+# Transform nodes and edges df into gdf 
+nodes['geometry'] = gpd.GeoSeries.from_wkt(nodes['geometry'])
+nodes = gpd.GeoDataFrame(nodes,crs="EPSG:32632", geometry='geometry')
+edges['geometry'] = gpd.GeoSeries.from_wkt(edges['geometry'])
+edges = gpd.GeoDataFrame(edges,crs="EPSG:32632", geometry='geometry')
 
 # keep necessary columns
 nodes = nodes[['osmid', 'y', 'x', 'street_cou', 'lon', 'lat', 'elevation', 'highway', 'geometry']]
-
-# Transform utf-8 in ascii : remove accents to avoid errors
-cols = edges.select_dtypes(include=[object]).columns
-edges[cols] = edges[cols].apply(lambda x: x.str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8'))
 
 # Some column types are not good, so change them. And also complete values for some columns
 # u, v columns : saved as float, need to change into integers
@@ -98,20 +104,6 @@ nodes = pd.merge(nodes, nodes_degree, how='left', on=['osmid'])
 # keep only nodes with degree value
 nodes = nodes.loc[~(nodes['degree'].isna())]
 
-"""
-# Select nodes with degree 1
-nodes_d1 = nodes.loc[nodes['degree']==1]
-list_nodes_d1 = nodes_d1['osmid'].tolist()
-print("There are %s nodes with degree 1" %len(list_nodes_d1))
-# Remove edges for which v is a node with degree 1, cause it means it is a cul de sac. Is it necessary, maybe for visualisation 
-cul_de_sac = directed_edges.loc[directed_edges['v'].isin(list_nodes_d1)]
-
-# Keep only nodes with degree > 1 and remove edges with degree 1 as v
-nodes = nodes.loc[nodes['degree']>1]
-print(nodes.loc[nodes['osmid']==567931579])
-directed_edges = directed_edges.loc[~(directed_edges['v'].isin(list_nodes_d1))]
-"""
-
 # Determine nodes that are intersections 
 # To have nodes with degree = 4 that are intersections (keep crossings too)
 nodes_d4 = nodes.loc[ (nodes['degree'] == 4) & ((nodes['highway'] == 'mini_roundabout') | (nodes['highway'] == 'traffic_signals') | (nodes['highway'] == 'crossing')) ]
@@ -134,11 +126,9 @@ print("\n The number of nodes that corrsepond to an intersection are", len(nodes
 # get unique values of osmid for the intersection nodes
 intersection_nodes_array = pd.unique(nodes_intersection['osmid'])
 
-# rest of the code was written with edges, so define edges as directed edges
-
 # Prepare dataframe of edges by keeping only part of the data (about the trafic, oneways) 
-edges_subset = pd.DataFrame([edges['key'], edges['osmid'], edges['name'], edges['highway'], edges['oneway'], edges['u'], edges['v'], edges['grade'], edges['lanes'], edges['maxspeed'], edges['DWV_ALLE'], edges['MSP_ALLE'], edges['ASP_ALLE']]).transpose()
-
+# edges_subset = pd.DataFrame([edges['key'], edges['osmid'], edges['name'], edges['highway'], edges['oneway'], edges['u'], edges['v'], edges['grade'], edges['lanes'], edges['maxspeed'], edges['DWV_ALLE'], edges['MSP_ALLE'], edges['ASP_ALLE']]).transpose()
+edges_subset = edges
 # Another dataframe only containing nodes from and to 
 edges_only_nodes = pd.DataFrame([edges['u'], edges['v']]).transpose()
 cols = ['u', 'v']
@@ -193,7 +183,7 @@ for osmid in intersection_nodes_array: # iterates through every node being an in
 movement_intersection_df = pd.merge(movement_df, edges, how='inner', left_on=['id_anf', 'id_in'], right_on=['u', 'v'])
 
 # Rename the columns added to take into account the from to
-dict = {'key':'key_anf_in', 'name': 'name_anf_in', 'highway' : 'highway_anf_in', 'oneway':'oneway_anf_in', 'grade':'grade_anf_in',  'lanes': 'lanes_anf_in', 'maxspeed':'maxspeed_anf_in', 'DWV_ALLE':'DWV_ALLE_anf_in', 'MSP_ALLE':'MSP_ALLE_anf_in', 'ASP_ALLE':'ASP_ALLE_anf_in'}
+dict = {'key':'key_anf_in', 'name': 'name_anf_in', 'highway' : 'highway_anf_in', 'oneway':'oneway_anf_in', 'grade':'grade_anf_in',  'lanes': 'lanes_anf_in', 'maxspeed':'maxspeed_anf_in', 'DWV_ALLE':'DWV_ALLE_anf_in'}
 movement_intersection_df.rename(columns=dict, inplace=True)
 
 # Checking if the 2nd part of the movement is possible (from intersection node  to the adjacent node to) and adds trafic data for this movement. Keep movement_df row only if the edge exists (u to v) in the edges_df 
@@ -202,25 +192,19 @@ movement_intersection_df = pd.merge(movement_intersection_df, edges, how='inner'
 # Make sure that the columns are in the good data type (float) 
 cast_to_type = {
     'DWV_ALLE_anf_in': float,
-    'MSP_ALLE_anf_in': float,
-    'ASP_ALLE_anf_in': float,
-    'DWV_ALLE': float,
-    'MSP_ALLE': float,
-    'ASP_ALLE': float,
-    }
+    'DWV_ALLE': float    }
 movement_intersection_df = movement_intersection_df.astype(cast_to_type)
 
 # Calculates the mean of traffic from the two edges present in the movement 
 movement_intersection_df = movement_intersection_df.assign(DWV_mean = lambda x: ((x['DWV_ALLE'] + x['DWV_ALLE_anf_in']) / 2).round(precision))
-movement_intersection_df = movement_intersection_df.assign(MSP_mean = lambda x: ((x['MSP_ALLE'] + x['MSP_ALLE_anf_in']) / 2).round(precision))
-movement_intersection_df = movement_intersection_df.assign(ASP_mean = lambda x: ((x['ASP_ALLE'] + x['ASP_ALLE_anf_in']) / 2).round(precision))
+
 
 # Rename again some columns
 dict = {'key':'key_in_ant','name': 'name_in_ant', 'highway' : 'highway_in_ant', 'oneway':'oneway_in_ant', 'lanes': 'lanes_in_ant', 'maxspeed':'maxspeed_in_ant', 'grade':'grade_in_ant'}
 movement_intersection_df.rename(columns=dict, inplace=True)
 
 # Renmove unecessary columns
-columns_to_remove = ['osmid_x','osmid_y','u_x','u_y', 'v_y','v_x','DWV_ALLE_anf_in', 'MSP_ALLE_anf_in', 'ASP_ALLE_anf_in','DWV_ALLE','MSP_ALLE', 'ASP_ALLE']
+columns_to_remove = ['osmid_x','osmid_y','u_x','u_y', 'v_y','v_x','DWV_ALLE_anf_in', 'DWV_ALLE']
 movement_intersection_df.drop(columns=columns_to_remove, inplace = True)
 
 # 5. Determine angle and direction for each movement
@@ -229,17 +213,14 @@ movement_intersection_df['angle'] = movement_intersection_df.apply(lambda x: ang
 movement_intersection_df['movement'] = movement_intersection_df['angle'].apply(angle_to_mvmt)
 
 # Saving the movement through intersection dataframe
+# column values
+# ['id_in', 'x_in', 'y_in', 'id_anf', 'x_anf', 'y_anf', 'id_ant', 'x_ant', 'y_ant', 'name_anf_in', 'oneway_anf_in', 'lanes_anf_in', 'highway_anf_in', 'maxspeed_anf_in', 'length_x', 'grade_anf_in', 'geometry_x', 'name_in_ant', 'oneway_in_ant', 'lanes_in_ant', 'highway_in_ant', 'maxspeed_in_ant', 'length_y', 'grade_in_ant', 'geometry_y', 'DWV_mean', 'angle', 'movement']
 
-print("\n The movements through intersection have been defined. There are ", len(movement_intersection_df), " defined movements")
 
+movement_intersection_df =  movement_intersection_df[['id_in', 'x_in', 'y_in', 'id_anf', 'x_anf', 'y_anf', 'id_ant', 'x_ant', 'y_ant', 'name_anf_in', 'oneway_anf_in', 'lanes_anf_in', 'highway_anf_in', 'maxspeed_anf_in', 'grade_anf_in','name_in_ant', 'oneway_in_ant', 'lanes_in_ant', 'highway_in_ant', 'maxspeed_in_ant', 'grade_in_ant', 'DWV_mean', 'angle', 'movement']]
 
-columns_to_remove = ['service_x', 'junction_x', 'bridge_x', 'tunnel_x', 'speed_zone_x', 'Am_cycl_x', 'Am_Direct_x', 'Am_cycl_2_x', 'Am_Dir_2_x', 'DWV_PW_x', 'DWV_LI_x', 'DWV_LW_x', 'DWV_LZ_x', 'MSP_PW_x', 'MSP_LI_x', 'MSP_LW_x', 'MSP_LZ_x', 'ASP_PW_x', 'ASP_LI_x', 'ASP_LW_x', 'ASP_LZ_x', 'pour100_GW_x', 'geometry_x', 'length_y', 'grade_in_ant', 'service_y', 'junction_y', 'bridge_y', 'tunnel_y', 'speed_zone_y', 'Am_cycl_y', 'Am_Direct_y', 'Am_cycl_2_y', 'Am_Dir_2_y', 'DWV_PW_y', 'DWV_LI_y', 'DWV_LW_y', 'DWV_LZ_y', 'MSP_PW_y', 'MSP_LI_y', 'MSP_LW_y', 'MSP_LZ_y', 'ASP_PW_y', 'ASP_LI_y', 'ASP_LW_y', 'ASP_LZ_y', 'pour100_GW_y', 'geometry_y']
-
-movement_intersection_df.drop(columns=columns_to_remove, inplace=True)
-
-print(movement_intersection_df.head())
-
-movement_intersection_df.to_csv('data/output/movement_intersection_complete_network.csv', sep=';')  
+# Remove the duplicated movements 
+movement_intersection_df.drop_duplicates(inplace=True)
 
 print("\n The movements through intersection have been defined. There are ", len(movement_intersection_df), " defined movements")
 
