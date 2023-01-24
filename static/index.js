@@ -172,6 +172,9 @@ function reset() {
     map.removeLayer(geojson_path);
     map.removeLayer(geojson_bound);
   };
+  if (legend) {
+    map.removeControl(legend);
+  };
   // Reset all forms and checkboxes to default values
   input_dep.disabled = false;
   input_dep.value="" // empty string as value
